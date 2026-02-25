@@ -197,6 +197,10 @@ export function createLifecycleManager(deps: LifecycleManagerDeps): LifecycleMan
     reactionFiredAt: Date | null;
     /** Whether we already sent the build-check after the review loop converged */
     buildSent: boolean;
+    /** When the build-check was sent (for CI poll delay) */
+    buildSentAt: Date | null;
+    /** Whether we already notified the user that the PR is ready to merge */
+    mergeNotified: boolean;
   }
 
   const botCommentStates = new Map<SessionId, BotCommentState>();
@@ -206,6 +210,9 @@ export function createLifecycleManager(deps: LifecycleManagerDeps): LifecycleMan
 
   /** After firing review reaction, wait this long for new comments before sending build check. */
   const BUILD_CHECK_DELAY_MS = 180_000; // 3 minutes
+
+  /** After sending build check, wait this long before polling CI status. */
+  const CI_POLL_DELAY_MS = 180_000; // 3 minutes
 
   /** Statuses where bot comment detection should run. */
   const BOT_CHECK_STATUSES = new Set<SessionStatus>([
@@ -642,6 +649,8 @@ export function createLifecycleManager(deps: LifecycleManagerDeps): LifecycleMan
         reactionFired: false,
         reactionFiredAt: null,
         buildSent: false,
+        buildSentAt: null,
+        mergeNotified: false,
       });
       return;
     }
@@ -660,18 +669,20 @@ export function createLifecycleManager(deps: LifecycleManagerDeps): LifecycleMan
         prev.reactionFired = false;
         prev.reactionFiredAt = null;
         prev.buildSent = false;
+        prev.buildSentAt = null;
+        prev.mergeNotified = false;
       }
       return;
     }
 
-    // No new comments — check if we should send build check
+    // No new comments — check if we should send build check or merge notification
     if (prev.reactionFired) {
-      // Review loop converged: reaction was sent, agent processed it, no new
-      // comments arrived.  Send /buildit so the agent verifies the build.
+      // Step 1: Send /buildit after review loop converges
       if (!prev.buildSent && prev.reactionFiredAt) {
         const sinceReaction = now.getTime() - prev.reactionFiredAt.getTime();
         if (sinceReaction >= BUILD_CHECK_DELAY_MS) {
           prev.buildSent = true;
+          prev.buildSentAt = now;
           await sessionManager.send(
             session.id,
             "# Monitor and Fix CI Build\n\n"
@@ -689,6 +700,56 @@ export function createLifecycleManager(deps: LifecycleManagerDeps): LifecycleMan
               + "- Only fix what's needed to pass CI — no unrelated changes.\n"
               + "- Run `pnpm lint && pnpm typecheck` locally before pushing.\n",
           );
+        }
+        return;
+      }
+
+      // Step 2: After build check sent, poll CI and notify/merge when green
+      if (prev.buildSent && !prev.mergeNotified && prev.buildSentAt) {
+        const sinceBuild = now.getTime() - prev.buildSentAt.getTime();
+        if (sinceBuild < CI_POLL_DELAY_MS) return; // Give agent time to run build check
+
+        try {
+          const ciStatus = await scm.getCISummary(session.pr);
+          if (ciStatus === CI_STATUS.PASSING) {
+            prev.mergeNotified = true;
+
+            // Check if auto-merge is enabled via approved-and-green reaction
+            const mergeReaction = project.reactions?.["approved-and-green"]
+              ?? config.reactions["approved-and-green"];
+
+            if (mergeReaction?.auto === true) {
+              // Auto-merge
+              try {
+                await scm.mergePR(session.pr);
+                const event = createEvent("merge.completed", {
+                  sessionId: session.id,
+                  projectId: session.projectId,
+                  message: `PR #${session.pr.number} auto-merged after bot review loop converged and CI passed`,
+                });
+                await notifyHuman(event, "action");
+              } catch {
+                // Merge failed — notify user to handle manually
+                const event = createEvent("merge.ready", {
+                  sessionId: session.id,
+                  projectId: session.projectId,
+                  message: `PR #${session.pr.number}: bot reviews addressed, CI passing — auto-merge failed, please merge manually`,
+                });
+                await notifyHuman(event, "action");
+              }
+            } else {
+              // Notify user to decide
+              const event = createEvent("merge.ready", {
+                sessionId: session.id,
+                projectId: session.projectId,
+                message: `PR #${session.pr.number}: all bot review comments addressed, CI passing — ready to merge`,
+              });
+              await notifyHuman(event, "action");
+            }
+          }
+          // If CI is still pending or failing, we'll check again next cycle
+        } catch {
+          // SCM check failed — retry next cycle
         }
       }
       return;
