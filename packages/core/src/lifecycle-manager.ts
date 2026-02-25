@@ -11,6 +11,10 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   SESSION_STATUS,
   PR_STATE,
@@ -386,6 +390,51 @@ export function createLifecycleManager(deps: LifecycleManagerDeps): LifecycleMan
           action: "notify",
           escalated: false,
         };
+      }
+
+      case "send-structured-review": {
+        // Export PR comments as structured tasks and send to agent
+        try {
+          const session = await sessionManager.get(sessionId);
+          if (!session?.pr) {
+            return { reactionType: reactionKey, success: false, action, escalated: false };
+          }
+
+          const project = config.projects[projectId];
+          const repo = project?.repo ?? "";
+          const prNumber = String(session.pr.number);
+
+          const execFileAsync = promisify(execFile);
+          const coreDir = dirname(fileURLToPath(import.meta.url));
+          const scriptPath = resolve(coreDir, "../../../scripts/pr-comments/forward-to-agent.sh");
+
+          const { stdout } = await execFileAsync("bash", [scriptPath, repo, prNumber], {
+            timeout: 30_000,
+          });
+
+          if (stdout.trim()) {
+            await sessionManager.send(sessionId, stdout.trim());
+          }
+
+          return {
+            reactionType: reactionKey,
+            success: true,
+            action: "send-structured-review",
+            message: `Sent ${stdout.split("###").length - 1} structured review comments`,
+            escalated: false,
+          };
+        } catch {
+          // Fall back to simple message
+          if (reactionConfig.message) {
+            await sessionManager.send(sessionId, reactionConfig.message);
+          }
+          return {
+            reactionType: reactionKey,
+            success: true,
+            action: "send-structured-review",
+            escalated: false,
+          };
+        }
       }
 
       case "auto-merge": {

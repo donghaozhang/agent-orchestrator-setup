@@ -224,7 +224,7 @@ function applyDefaultReactions(config: OrchestratorConfig): OrchestratorConfig {
     },
     "changes-requested": {
       auto: true,
-      action: "send-to-agent",
+      action: "send-structured-review",
       message:
         "There are review comments on your PR. Check with `gh pr view --comments` and `gh api` for inline comments. Address each one, push fixes, and reply.",
       escalateAfter: "30m",
