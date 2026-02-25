@@ -202,6 +202,7 @@ export function createLifecycleManager(deps: LifecycleManagerDeps): LifecycleMan
 
   /** Statuses where bot comment detection should run. */
   const BOT_CHECK_STATUSES = new Set<SessionStatus>([
+    "working",
     "pr_open",
     "review_pending",
     "ci_failed",

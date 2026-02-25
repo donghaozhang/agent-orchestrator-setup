@@ -454,8 +454,8 @@ function createGitHubSCM(): SCM {
         // CodeRabbit and other bots post top-level comments (issues endpoint),
         // while some bots also post inline review comments (pulls endpoint).
         const [inlineRaw, topLevelRaw] = await Promise.all([
-          gh(["api", "-F", "per_page=100", `repos/${repo}/pulls/${pr.number}/comments`]),
-          gh(["api", "-F", "per_page=100", `repos/${repo}/issues/${pr.number}/comments`]),
+          gh(["api", `repos/${repo}/pulls/${pr.number}/comments?per_page=100`]),
+          gh(["api", `repos/${repo}/issues/${pr.number}/comments?per_page=100`]),
         ]);
 
         const inlineComments: Array<{
