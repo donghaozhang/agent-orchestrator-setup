@@ -164,12 +164,19 @@ describe("tracker-github plugin", () => {
   // ---- branchName --------------------------------------------------------
 
   describe("branchName", () => {
-    it("generates feat/issue-N format", () => {
-      expect(tracker.branchName("42", project)).toBe("feat/issue-42");
+    it("generates slug from issue title", async () => {
+      mockGh({ number: 42, title: "Add sound effects to the game", body: "", url: "https://github.com/acme/repo/issues/42", state: "OPEN", stateReason: null, labels: [], assignees: [] });
+      expect(await tracker.branchName("42", project)).toBe("feat/42-add-sound-effects-to-the-game");
     });
 
-    it("strips # prefix", () => {
-      expect(tracker.branchName("#42", project)).toBe("feat/issue-42");
+    it("strips # prefix", async () => {
+      mockGh({ number: 42, title: "Fix bug", body: "", url: "https://github.com/acme/repo/issues/42", state: "OPEN", stateReason: null, labels: [], assignees: [] });
+      expect(await tracker.branchName("#42", project)).toBe("feat/42-fix-bug");
+    });
+
+    it("falls back to feat/N on fetch error", async () => {
+      mockGhError();
+      expect(await tracker.branchName("42", project)).toBe("feat/42");
     });
   });
 

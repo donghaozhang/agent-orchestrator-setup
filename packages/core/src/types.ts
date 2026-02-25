@@ -435,7 +435,7 @@ export interface Tracker {
   issueLabel?(url: string, project: ProjectConfig): string;
 
   /** Generate a git branch name for the issue */
-  branchName(identifier: string, project: ProjectConfig): string;
+  branchName(identifier: string, project: ProjectConfig): string | Promise<string>;
 
   /** Generate a prompt for the agent to work on this issue */
   generatePrompt(identifier: string, project: ProjectConfig): Promise<string>;

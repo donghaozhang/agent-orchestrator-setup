@@ -118,9 +118,21 @@ function createGitHubTracker(): Tracker {
       return lastPart ? `#${lastPart}` : url;
     },
 
-    branchName(identifier: string, _project: ProjectConfig): string {
+    async branchName(identifier: string, project: ProjectConfig): Promise<string> {
       const num = identifier.replace(/^#/, "");
-      return `feat/issue-${num}`;
+      try {
+        const issue = await this.getIssue(identifier, project);
+        // Slugify title: lowercase, replace non-alphanumeric with hyphens, trim, max 40 chars
+        const slug = issue.title
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "")
+          .slice(0, 40)
+          .replace(/-$/, "");
+        return `feat/${num}-${slug}`;
+      } catch {
+        return `feat/${num}`;
+      }
     },
 
     async generatePrompt(identifier: string, project: ProjectConfig): Promise<string> {

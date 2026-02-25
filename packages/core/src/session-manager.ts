@@ -362,18 +362,41 @@ export function createSessionManager(deps: SessionManagerDeps): SessionManager {
       validateAndStoreOrigin(config.configPath, project.path);
     }
 
-    // Determine session ID — atomically reserve to prevent concurrent collisions
+    // Determine session ID — atomically reserve to prevent concurrent collisions.
+    // When an issue is provided, derive a descriptive slug from the title.
     const existingSessions = listMetadata(sessionsDir);
+    let issueSlug = "";
+    if (spawnConfig.issueId && plugins.tracker) {
+      try {
+        const issue = await plugins.tracker.getIssue(spawnConfig.issueId, project);
+        issueSlug = issue.title
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "")
+          .slice(0, 30)
+          .replace(/-$/, "");
+      } catch {
+        // Fall back to numeric ID
+      }
+    }
+
     let num = getNextSessionNumber(existingSessions, project.sessionPrefix);
     let sessionId: string;
     let tmuxName: string | undefined;
     for (let attempts = 0; attempts < 10; attempts++) {
-      sessionId = `${project.sessionPrefix}-${num}`;
+      sessionId = issueSlug
+        ? `${project.sessionPrefix}-${issueSlug}`
+        : `${project.sessionPrefix}-${num}`;
       // Generate tmux name if using new architecture
       if (config.configPath) {
         tmuxName = generateTmuxName(config.configPath, project.sessionPrefix, num);
       }
       if (reserveSessionId(sessionsDir, sessionId)) break;
+      // On collision, append number to make unique
+      if (issueSlug) {
+        sessionId = `${project.sessionPrefix}-${issueSlug}-${num}`;
+        if (reserveSessionId(sessionsDir, sessionId)) break;
+      }
       num++;
       if (attempts === 9) {
         throw new Error(
@@ -382,7 +405,13 @@ export function createSessionManager(deps: SessionManagerDeps): SessionManager {
       }
     }
     // Reassign to satisfy TypeScript's flow analysis (not redundant from compiler's perspective)
-    sessionId = `${project.sessionPrefix}-${num}`;
+    sessionId = issueSlug
+      ? `${project.sessionPrefix}-${issueSlug}`
+      : `${project.sessionPrefix}-${num}`;
+    // Re-check reservation for the final ID
+    if (!listMetadata(sessionsDir).includes(sessionId)) {
+      reserveSessionId(sessionsDir, sessionId);
+    }
     if (config.configPath) {
       tmuxName = generateTmuxName(config.configPath, project.sessionPrefix, num);
     }
@@ -392,7 +421,7 @@ export function createSessionManager(deps: SessionManagerDeps): SessionManager {
     if (spawnConfig.branch) {
       branch = spawnConfig.branch;
     } else if (spawnConfig.issueId && plugins.tracker) {
-      branch = plugins.tracker.branchName(spawnConfig.issueId, project);
+      branch = await plugins.tracker.branchName(spawnConfig.issueId, project);
     } else if (spawnConfig.issueId) {
       branch = `feat/${spawnConfig.issueId}`;
     } else {

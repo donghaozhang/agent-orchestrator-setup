@@ -258,8 +258,11 @@ describe("plugin integration", () => {
       const registry = createTestRegistry();
       const sm = createSessionManager({ config, registry });
 
-      // Mock gh issue view response for validation
-      mockGh({
+      // Mock gh issue view responses:
+      // 1. getIssue for session slug
+      // 2. getIssue for branchName
+      // 3. getIssue for generatePrompt
+      const issueData = {
         number: 99,
         title: "Test issue",
         body: "Test description",
@@ -268,19 +271,22 @@ describe("plugin integration", () => {
         stateReason: null,
         labels: [],
         assignees: [],
-      });
+      };
+      mockGh(issueData);
+      mockGh(issueData);
+      mockGh(issueData);
 
       const session = await sm.spawn({
         projectId: "my-app",
         issueId: "99",
       });
 
-      // tracker-github.branchName("99", project) → "feat/issue-99"
-      expect(session.branch).toBe("feat/issue-99");
+      // tracker-github.branchName("99", project) → "feat/99-test-issue"
+      expect(session.branch).toBe("feat/99-test-issue");
 
       // Workspace should have been called with the tracker-derived branch
       expect(mockWorkspace.create).toHaveBeenCalledWith(
-        expect.objectContaining({ branch: "feat/issue-99" }),
+        expect.objectContaining({ branch: "feat/99-test-issue" }),
       );
     });
 
