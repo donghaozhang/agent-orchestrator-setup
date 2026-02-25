@@ -193,12 +193,19 @@ export function createLifecycleManager(deps: LifecycleManagerDeps): LifecycleMan
     lastNewCommentDetectedAt: Date;
     /** Whether we already fired the reaction for this batch */
     reactionFired: boolean;
+    /** When the reaction was last fired (for build-check delay) */
+    reactionFiredAt: Date | null;
+    /** Whether we already sent the build-check after the review loop converged */
+    buildSent: boolean;
   }
 
   const botCommentStates = new Map<SessionId, BotCommentState>();
 
   /** Settle time: wait this long after last new bot comment before triggering. */
   const BOT_COMMENT_SETTLE_MS = 120_000; // 2 minutes
+
+  /** After firing review reaction, wait this long for new comments before sending build check. */
+  const BUILD_CHECK_DELAY_MS = 180_000; // 3 minutes
 
   /** Statuses where bot comment detection should run. */
   const BOT_CHECK_STATUSES = new Set<SessionStatus>([
@@ -633,6 +640,8 @@ export function createLifecycleManager(deps: LifecycleManagerDeps): LifecycleMan
         latestCommentAt: latestComment,
         lastNewCommentDetectedAt: now,
         reactionFired: false,
+        reactionFiredAt: null,
+        buildSent: false,
       });
       return;
     }
@@ -649,18 +658,48 @@ export function createLifecycleManager(deps: LifecycleManagerDeps): LifecycleMan
       // Allow re-firing if we already fired for a previous batch
       if (prev.reactionFired) {
         prev.reactionFired = false;
+        prev.reactionFiredAt = null;
+        prev.buildSent = false;
       }
       return;
     }
 
-    // No new comments — check if settle time has elapsed
-    if (prev.reactionFired) return; // Already handled this batch
+    // No new comments — check if we should send build check
+    if (prev.reactionFired) {
+      // Review loop converged: reaction was sent, agent processed it, no new
+      // comments arrived.  Send /buildit so the agent verifies the build.
+      if (!prev.buildSent && prev.reactionFiredAt) {
+        const sinceReaction = now.getTime() - prev.reactionFiredAt.getTime();
+        if (sinceReaction >= BUILD_CHECK_DELAY_MS) {
+          prev.buildSent = true;
+          await sessionManager.send(
+            session.id,
+            "# Monitor and Fix CI Build\n\n"
+              + "The review comment loop has converged — no new bot comments. "
+              + "Now verify the CI build passes.\n\n"
+              + "## Steps\n\n"
+              + "1. Get the current PR with `gh pr view --json number --jq .number`.\n"
+              + "2. Check CI status with `gh pr checks`.\n"
+              + "3. If all checks pass, report success and stop.\n"
+              + "4. If a check fails, get the logs with `gh run view <run-id> --log-failed`.\n"
+              + "5. Diagnose the failure (lint, typecheck, test, build).\n"
+              + "6. Fix the code and push the fix.\n"
+              + "7. Re-check CI after the push.\n\n"
+              + "## Rules\n\n"
+              + "- Only fix what's needed to pass CI — no unrelated changes.\n"
+              + "- Run `pnpm lint && pnpm typecheck` locally before pushing.\n",
+          );
+        }
+      }
+      return;
+    }
 
     const settleElapsed = now.getTime() - prev.lastNewCommentDetectedAt.getTime();
     if (settleElapsed < BOT_COMMENT_SETTLE_MS) return; // Still settling
 
     // Comments have settled — trigger the bugbot-comments reaction
     prev.reactionFired = true;
+    prev.reactionFiredAt = now;
 
     const reactionKey = "bugbot-comments";
     const globalReaction = config.reactions[reactionKey];
