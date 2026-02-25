@@ -206,13 +206,13 @@ export function createLifecycleManager(deps: LifecycleManagerDeps): LifecycleMan
   const botCommentStates = new Map<SessionId, BotCommentState>();
 
   /** Settle time: wait this long after last new bot comment before triggering. */
-  const BOT_COMMENT_SETTLE_MS = 60_000; // 1 minute (normally 2 minutes)
+  const BOT_COMMENT_SETTLE_MS = 120_000; // 2 minutes
 
   /** After firing review reaction, wait this long for new comments before sending build check. */
-  const BUILD_CHECK_DELAY_MS = 60_000; // 1 minute (normally 3 minutes)
+  const BUILD_CHECK_DELAY_MS = 180_000; // 3 minutes
 
   /** After sending build check, wait this long before polling CI status. */
-  const CI_POLL_DELAY_MS = 60_000; // 1 minute (normally 3 minutes)
+  const CI_POLL_DELAY_MS = 180_000; // 3 minutes
 
   /** Statuses where bot comment detection should run. */
   const BOT_CHECK_STATUSES = new Set<SessionStatus>([
