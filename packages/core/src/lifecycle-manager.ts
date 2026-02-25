@@ -35,6 +35,7 @@ import {
   type Notifier,
   type Session,
   type EventPriority,
+  type AutomatedComment,
   type ProjectConfig as _ProjectConfig,
 } from "./types.js";
 import { updateMetadata } from "./metadata.js";
@@ -181,6 +182,31 @@ export function createLifecycleManager(deps: LifecycleManagerDeps): LifecycleMan
   let pollTimer: ReturnType<typeof setInterval> | null = null;
   let polling = false; // re-entrancy guard
   let allCompleteEmitted = false; // guard against repeated all_complete
+
+  /** Track bot comment state per session for debounce/settle logic. */
+  interface BotCommentState {
+    /** Number of bot comments seen last time we checked */
+    lastSeenCount: number;
+    /** Timestamp of the most recent bot comment */
+    latestCommentAt: Date;
+    /** When we last detected new comments (for settle timer) */
+    lastNewCommentDetectedAt: Date;
+    /** Whether we already fired the reaction for this batch */
+    reactionFired: boolean;
+  }
+
+  const botCommentStates = new Map<SessionId, BotCommentState>();
+
+  /** Settle time: wait this long after last new bot comment before triggering. */
+  const BOT_COMMENT_SETTLE_MS = 120_000; // 2 minutes
+
+  /** Statuses where bot comment detection should run. */
+  const BOT_CHECK_STATUSES = new Set<SessionStatus>([
+    "pr_open",
+    "review_pending",
+    "ci_failed",
+    "changes_requested",
+  ]);
 
   /** Determine current status for a session by polling plugins. */
   async function determineStatus(session: Session): Promise<SessionStatus> {
@@ -569,6 +595,89 @@ export function createLifecycleManager(deps: LifecycleManagerDeps): LifecycleMan
     }
   }
 
+  /** Check for settled bot review comments on a session's PR and trigger reaction. */
+  async function checkBotComments(session: Session): Promise<void> {
+    if (!session.pr) return;
+
+    const currentStatus = states.get(session.id);
+    if (!currentStatus || !BOT_CHECK_STATUSES.has(currentStatus)) return;
+
+    const project = config.projects[session.projectId];
+    if (!project?.scm) return;
+
+    const scm = registry.get<SCM>("scm", project.scm.plugin);
+    if (!scm) return;
+
+    let comments: AutomatedComment[];
+    try {
+      comments = await scm.getAutomatedComments(session.pr);
+    } catch {
+      return; // Fetch failed, try next cycle
+    }
+
+    if (comments.length === 0) return;
+
+    const now = new Date();
+    const latestComment = comments.reduce(
+      (latest, c) => (c.createdAt > latest ? c.createdAt : latest),
+      new Date(0),
+    );
+
+    const prev = botCommentStates.get(session.id);
+
+    if (!prev) {
+      // First time seeing bot comments for this session — start settle timer
+      botCommentStates.set(session.id, {
+        lastSeenCount: comments.length,
+        latestCommentAt: latestComment,
+        lastNewCommentDetectedAt: now,
+        reactionFired: false,
+      });
+      return;
+    }
+
+    // Check if new comments arrived since last check
+    const newCommentsArrived =
+      comments.length > prev.lastSeenCount || latestComment > prev.latestCommentAt;
+
+    if (newCommentsArrived) {
+      // Reset settle timer — more comments still coming in
+      prev.lastSeenCount = comments.length;
+      prev.latestCommentAt = latestComment;
+      prev.lastNewCommentDetectedAt = now;
+      // Allow re-firing if we already fired for a previous batch
+      if (prev.reactionFired) {
+        prev.reactionFired = false;
+      }
+      return;
+    }
+
+    // No new comments — check if settle time has elapsed
+    if (prev.reactionFired) return; // Already handled this batch
+
+    const settleElapsed = now.getTime() - prev.lastNewCommentDetectedAt.getTime();
+    if (settleElapsed < BOT_COMMENT_SETTLE_MS) return; // Still settling
+
+    // Comments have settled — trigger the bugbot-comments reaction
+    prev.reactionFired = true;
+
+    const reactionKey = "bugbot-comments";
+    const globalReaction = config.reactions[reactionKey];
+    const projectReaction = project.reactions?.[reactionKey];
+    const reactionConfig = projectReaction
+      ? { ...globalReaction, ...projectReaction }
+      : globalReaction;
+
+    if (!reactionConfig || reactionConfig.auto === false) return;
+
+    await executeReaction(
+      session.id,
+      session.projectId,
+      reactionKey,
+      reactionConfig as ReactionConfig,
+    );
+  }
+
   /** Run one polling cycle across all sessions. */
   async function pollAll(): Promise<void> {
     // Re-entrancy guard: skip if previous poll is still running
@@ -590,8 +699,12 @@ export function createLifecycleManager(deps: LifecycleManagerDeps): LifecycleMan
       // Poll all sessions concurrently
       await Promise.allSettled(sessionsToCheck.map((s) => checkSession(s)));
 
-      // Prune stale entries from states and reactionTrackers for sessions
-      // that no longer appear in the session list (e.g., after kill/cleanup)
+      // Parallel check: detect settled bot review comments on open PRs
+      const sessionsWithPRs = sessionsToCheck.filter((s) => s.pr != null);
+      await Promise.allSettled(sessionsWithPRs.map((s) => checkBotComments(s)));
+
+      // Prune stale entries from states, reactionTrackers, and botCommentStates
+      // for sessions that no longer appear in the session list (e.g., after kill/cleanup)
       const currentSessionIds = new Set(sessions.map((s) => s.id));
       for (const trackedId of states.keys()) {
         if (!currentSessionIds.has(trackedId)) {
@@ -602,6 +715,11 @@ export function createLifecycleManager(deps: LifecycleManagerDeps): LifecycleMan
         const sessionId = trackerKey.split(":")[0];
         if (sessionId && !currentSessionIds.has(sessionId)) {
           reactionTrackers.delete(trackerKey);
+        }
+      }
+      for (const trackedId of botCommentStates.keys()) {
+        if (!currentSessionIds.has(trackedId)) {
+          botCommentStates.delete(trackedId);
         }
       }
 

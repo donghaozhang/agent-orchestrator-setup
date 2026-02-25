@@ -38,6 +38,11 @@ const BOT_AUTHORS = new Set([
   "deepsource-autofix[bot]",
   "snyk-bot",
   "lgtm-com[bot]",
+  "coderabbitai[bot]",
+  "gemini-code-assist[bot]",
+  "copilot-pull-request-reviewer[bot]",
+  "sourcery-ai[bot]",
+  "pr-agent[bot]",
 ]);
 
 // ---------------------------------------------------------------------------
@@ -422,15 +427,38 @@ function createGitHubSCM(): SCM {
 
     async getAutomatedComments(pr: PRInfo): Promise<AutomatedComment[]> {
       try {
-        // Fetch all review comments with max page size (100 is GitHub's limit)
-        const raw = await gh([
-          "api",
-          "-F",
-          "per_page=100",
-          `repos/${repoFlag(pr)}/pulls/${pr.number}/comments`,
+        // Determine severity from body content
+        function classifySeverity(body: string): AutomatedComment["severity"] {
+          const lower = body.toLowerCase();
+          if (
+            lower.includes("error") ||
+            lower.includes("bug") ||
+            lower.includes("critical") ||
+            lower.includes("potential issue")
+          ) {
+            return "error";
+          }
+          if (
+            lower.includes("warning") ||
+            lower.includes("suggest") ||
+            lower.includes("consider")
+          ) {
+            return "warning";
+          }
+          return "info";
+        }
+
+        const repo = repoFlag(pr);
+
+        // Fetch inline review comments AND top-level PR comments in parallel.
+        // CodeRabbit and other bots post top-level comments (issues endpoint),
+        // while some bots also post inline review comments (pulls endpoint).
+        const [inlineRaw, topLevelRaw] = await Promise.all([
+          gh(["api", "-F", "per_page=100", `repos/${repo}/pulls/${pr.number}/comments`]),
+          gh(["api", "-F", "per_page=100", `repos/${repo}/issues/${pr.number}/comments`]),
         ]);
 
-        const comments: Array<{
+        const inlineComments: Array<{
           id: number;
           user: { login: string };
           body: string;
@@ -439,40 +467,45 @@ function createGitHubSCM(): SCM {
           original_line: number | null;
           created_at: string;
           html_url: string;
-        }> = JSON.parse(raw);
+        }> = JSON.parse(inlineRaw);
 
-        return comments
+        const topLevelComments: Array<{
+          id: number;
+          user: { login: string };
+          body: string;
+          created_at: string;
+          html_url: string;
+        }> = JSON.parse(topLevelRaw);
+
+        const inline = inlineComments
           .filter((c) => BOT_AUTHORS.has(c.user?.login ?? ""))
-          .map((c) => {
-            // Determine severity from body content
-            let severity: AutomatedComment["severity"] = "info";
-            const bodyLower = c.body.toLowerCase();
-            if (
-              bodyLower.includes("error") ||
-              bodyLower.includes("bug") ||
-              bodyLower.includes("critical") ||
-              bodyLower.includes("potential issue")
-            ) {
-              severity = "error";
-            } else if (
-              bodyLower.includes("warning") ||
-              bodyLower.includes("suggest") ||
-              bodyLower.includes("consider")
-            ) {
-              severity = "warning";
-            }
+          .map((c) => ({
+            id: String(c.id),
+            botName: c.user?.login ?? "unknown",
+            body: c.body,
+            path: c.path || undefined,
+            line: c.line ?? c.original_line ?? undefined,
+            severity: classifySeverity(c.body),
+            createdAt: parseDate(c.created_at),
+            url: c.html_url,
+          }));
 
-            return {
-              id: String(c.id),
-              botName: c.user?.login ?? "unknown",
-              body: c.body,
-              path: c.path || undefined,
-              line: c.line ?? c.original_line ?? undefined,
-              severity,
-              createdAt: parseDate(c.created_at),
-              url: c.html_url,
-            };
-          });
+        const topLevel = topLevelComments
+          .filter((c) => BOT_AUTHORS.has(c.user?.login ?? ""))
+          .map((c) => ({
+            id: String(c.id),
+            botName: c.user?.login ?? "unknown",
+            body: c.body,
+            path: undefined,
+            line: undefined,
+            severity: classifySeverity(c.body),
+            createdAt: parseDate(c.created_at),
+            url: c.html_url,
+          }));
+
+        return [...inline, ...topLevel].sort(
+          (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+        );
       } catch {
         return [];
       }

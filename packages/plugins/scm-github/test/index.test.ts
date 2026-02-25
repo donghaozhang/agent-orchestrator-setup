@@ -566,6 +566,7 @@ describe("scm-github plugin", () => {
 
   describe("getAutomatedComments", () => {
     it("returns bot comments filtered from all PR comments", async () => {
+      // First call: inline review comments (pulls/.../comments)
       mockGh([
         {
           id: 1,
@@ -588,6 +589,8 @@ describe("scm-github plugin", () => {
           html_url: "u2",
         },
       ]);
+      // Second call: top-level PR comments (issues/.../comments)
+      mockGh([]);
 
       const comments = await scm.getAutomatedComments(pr);
       expect(comments).toHaveLength(1);
@@ -596,6 +599,7 @@ describe("scm-github plugin", () => {
     });
 
     it("classifies severity from body content", async () => {
+      // Inline review comments
       mockGh([
         {
           id: 1,
@@ -628,6 +632,8 @@ describe("scm-github plugin", () => {
           html_url: "u",
         },
       ]);
+      // Top-level PR comments
+      mockGh([]);
 
       const comments = await scm.getAutomatedComments(pr);
       expect(comments).toHaveLength(3);
@@ -637,6 +643,7 @@ describe("scm-github plugin", () => {
     });
 
     it("returns empty when no bot comments", async () => {
+      // Inline review comments
       mockGh([
         {
           id: 1,
@@ -649,6 +656,8 @@ describe("scm-github plugin", () => {
           html_url: "u",
         },
       ]);
+      // Top-level PR comments
+      mockGh([]);
 
       const comments = await scm.getAutomatedComments(pr);
       expect(comments).toEqual([]);
@@ -660,6 +669,7 @@ describe("scm-github plugin", () => {
     });
 
     it("uses original_line as fallback", async () => {
+      // Inline review comments
       mockGh([
         {
           id: 1,
@@ -672,6 +682,8 @@ describe("scm-github plugin", () => {
           html_url: "u",
         },
       ]);
+      // Top-level PR comments
+      mockGh([]);
 
       const comments = await scm.getAutomatedComments(pr);
       expect(comments[0].line).toBe(15);
