@@ -89,45 +89,64 @@ function createGitHubSCM(): SCM {
         throw new Error(`Invalid repo format "${project.repo}", expected "owner/repo"`);
       }
       const [owner, repo] = parts;
-      try {
-        const raw = await gh([
-          "pr",
-          "list",
-          "--repo",
-          project.repo,
-          "--head",
-          session.branch,
-          "--json",
-          "number,url,title,headRefName,baseRefName,isDraft",
-          "--limit",
-          "1",
-        ]);
 
-        const prs: Array<{
-          number: number;
-          url: string;
-          title: string;
-          headRefName: string;
-          baseRefName: string;
-          isDraft: boolean;
-        }> = JSON.parse(raw);
-
-        if (prs.length === 0) return null;
-
-        const pr = prs[0];
-        return {
-          number: pr.number,
-          url: pr.url,
-          title: pr.title,
-          owner,
-          repo,
-          branch: pr.headRefName,
-          baseBranch: pr.baseRefName,
-          isDraft: pr.isDraft,
-        };
-      } catch {
-        return null;
+      // Try metadata branch first, then fall back to actual worktree branch
+      const branchesToTry = [session.branch];
+      if (session.workspacePath) {
+        try {
+          const { stdout } = await execFileAsync("git", ["-C", session.workspacePath, "branch", "--show-current"], { timeout: 5_000 });
+          const actualBranch = stdout.trim();
+          if (actualBranch && actualBranch !== session.branch) {
+            branchesToTry.push(actualBranch);
+          }
+        } catch {
+          // Worktree may not exist — that's fine
+        }
       }
+
+      for (const branch of branchesToTry) {
+        try {
+          const raw = await gh([
+            "pr",
+            "list",
+            "--repo",
+            project.repo,
+            "--head",
+            branch,
+            "--json",
+            "number,url,title,headRefName,baseRefName,isDraft",
+            "--limit",
+            "1",
+          ]);
+
+          const prs: Array<{
+            number: number;
+            url: string;
+            title: string;
+            headRefName: string;
+            baseRefName: string;
+            isDraft: boolean;
+          }> = JSON.parse(raw);
+
+          if (prs.length === 0) continue;
+
+          const pr = prs[0];
+          return {
+            number: pr.number,
+            url: pr.url,
+            title: pr.title,
+            owner,
+            repo,
+            branch: pr.headRefName,
+            baseBranch: pr.baseRefName,
+            isDraft: pr.isDraft,
+          };
+        } catch {
+          continue;
+        }
+      }
+
+      return null;
     },
 
     async getPRState(pr: PRInfo): Promise<PRState> {

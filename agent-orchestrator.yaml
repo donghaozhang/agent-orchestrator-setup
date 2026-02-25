@@ -50,9 +50,8 @@ projects:
     #   - "pnpm install"
 
     # Agent-specific config
-    # agentConfig:
-    #   permissions: skip    # --dangerously-skip-permissions
-    #   model: opus
+    agentConfig:
+      permissions: skip    # --full-auto (YOLO mode)
 
     # Inline rules included in every agent prompt for this project
     # agentRules: |

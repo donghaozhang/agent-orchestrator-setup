@@ -612,24 +612,26 @@ export function createLifecycleManager(deps: LifecycleManagerDeps): LifecycleMan
 
   /** Check for settled bot review comments on a session's PR and trigger reaction. */
   async function checkBotComments(session: Session): Promise<void> {
-    if (!session.pr) return;
+    if (!session.pr) { console.log(`[botcheck] ${session.id}: no PR`); return; }
 
     const currentStatus = states.get(session.id);
-    if (!currentStatus || !BOT_CHECK_STATUSES.has(currentStatus)) return;
+    if (!currentStatus || !BOT_CHECK_STATUSES.has(currentStatus)) { console.log(`[botcheck] ${session.id}: status=${currentStatus} not in BOT_CHECK_STATUSES`); return; }
 
     const project = config.projects[session.projectId];
-    if (!project?.scm) return;
+    if (!project?.scm) { console.log(`[botcheck] ${session.id}: no scm config`); return; }
 
     const scm = registry.get<SCM>("scm", project.scm.plugin);
-    if (!scm) return;
+    if (!scm) { console.log(`[botcheck] ${session.id}: scm plugin not found`); return; }
 
     let comments: AutomatedComment[];
     try {
       comments = await scm.getAutomatedComments(session.pr);
-    } catch {
+    } catch (err) {
+      console.log(`[botcheck] ${session.id}: getAutomatedComments failed: ${err}`);
       return; // Fetch failed, try next cycle
     }
 
+    console.log(`[botcheck] ${session.id}: found ${comments.length} bot comments`);
     if (comments.length === 0) return;
 
     const now = new Date();
@@ -642,6 +644,7 @@ export function createLifecycleManager(deps: LifecycleManagerDeps): LifecycleMan
 
     if (!prev) {
       // First time seeing bot comments for this session — start settle timer
+      console.log(`[botcheck] ${session.id}: first detection, ${comments.length} comments, starting settle timer`);
       botCommentStates.set(session.id, {
         lastSeenCount: comments.length,
         latestCommentAt: latestComment,
@@ -680,7 +683,9 @@ export function createLifecycleManager(deps: LifecycleManagerDeps): LifecycleMan
       // Step 1: Send /buildit after review loop converges
       if (!prev.buildSent && prev.reactionFiredAt) {
         const sinceReaction = now.getTime() - prev.reactionFiredAt.getTime();
+        console.log(`[botcheck] ${session.id}: waiting for build check... ${Math.round(sinceReaction/1000)}s / ${BUILD_CHECK_DELAY_MS/1000}s`);
         if (sinceReaction >= BUILD_CHECK_DELAY_MS) {
+          console.log(`[botcheck] ${session.id}: sending /buildit instructions`);
           prev.buildSent = true;
           prev.buildSentAt = now;
           await sessionManager.send(
@@ -707,10 +712,14 @@ export function createLifecycleManager(deps: LifecycleManagerDeps): LifecycleMan
       // Step 2: After build check sent, poll CI and notify/merge when green
       if (prev.buildSent && !prev.mergeNotified && prev.buildSentAt) {
         const sinceBuild = now.getTime() - prev.buildSentAt.getTime();
-        if (sinceBuild < CI_POLL_DELAY_MS) return; // Give agent time to run build check
+        if (sinceBuild < CI_POLL_DELAY_MS) {
+          console.log(`[botcheck] ${session.id}: waiting for CI poll... ${Math.round(sinceBuild/1000)}s / ${CI_POLL_DELAY_MS/1000}s`);
+          return;
+        }
 
         try {
           const ciStatus = await scm.getCISummary(session.pr);
+          console.log(`[botcheck] ${session.id}: CI status = ${ciStatus}`);
           if (ciStatus === CI_STATUS.PASSING) {
             prev.mergeNotified = true;
 
@@ -756,9 +765,13 @@ export function createLifecycleManager(deps: LifecycleManagerDeps): LifecycleMan
     }
 
     const settleElapsed = now.getTime() - prev.lastNewCommentDetectedAt.getTime();
-    if (settleElapsed < BOT_COMMENT_SETTLE_MS) return; // Still settling
+    if (settleElapsed < BOT_COMMENT_SETTLE_MS) {
+      console.log(`[botcheck] ${session.id}: settling... ${Math.round(settleElapsed/1000)}s / ${BOT_COMMENT_SETTLE_MS/1000}s`);
+      return;
+    }
 
     // Comments have settled — trigger the bugbot-comments reaction
+    console.log(`[botcheck] ${session.id}: SETTLED after ${Math.round(settleElapsed/1000)}s — firing bugbot-comments reaction`);
     prev.reactionFired = true;
     prev.reactionFiredAt = now;
 
