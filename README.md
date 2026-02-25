@@ -27,19 +27,19 @@ git clone https://github.com/ComposioHQ/agent-orchestrator.git
 cd agent-orchestrator && bash scripts/setup.sh
 
 # Configure your project
-cd ~/your-project && ao init --auto
+cd ~/your-project && qagent init --auto
 
 # Launch and spawn an agent
-ao start
-ao spawn my-project 123    # GitHub issue, Linear ticket, or ad-hoc
+qagent start
+qagent spawn my-project 123    # GitHub issue, Linear ticket, or ad-hoc
 ```
 
-Dashboard opens at `http://localhost:3000`. Run `ao status` for the CLI view.
+Dashboard opens at `http://localhost:3000`. Run `qagent status` for the CLI view.
 
 ## How It Works
 
 ```
-ao spawn my-project 123
+qagent spawn my-project 123
 ```
 
 1. **Workspace** creates an isolated git worktree with a feature branch
@@ -69,7 +69,7 @@ All interfaces defined in [`packages/core/src/types.ts`](packages/core/src/types
 ## Configuration
 
 ```yaml
-# agent-orchestrator.yaml
+# qagent.yaml
 port: 3000
 
 defaults:
@@ -101,18 +101,18 @@ reactions:
 
 CI fails → agent gets the logs and fixes it. Reviewer requests changes → agent addresses them. PR approved with green CI → you get a notification to merge.
 
-See [`agent-orchestrator.yaml.example`](agent-orchestrator.yaml.example) for the full reference.
+See [`qagent.yaml.example`](qagent.yaml.example) for the full reference.
 
 ## CLI
 
 ```bash
-ao status                              # Overview of all sessions
-ao spawn <project> [issue]             # Spawn an agent
-ao send <session> "Fix the tests"      # Send instructions
-ao session ls                          # List sessions
-ao session kill <session>              # Kill a session
-ao session restore <session>           # Revive a crashed agent
-ao dashboard                           # Open web dashboard
+qagent status                              # Overview of all sessions
+qagent spawn <project> [issue]             # Spawn an agent
+qagent send <session> "Fix the tests"      # Send instructions
+qagent session ls                          # List sessions
+qagent session kill <session>              # Kill a session
+qagent session restore <session>           # Revive a crashed agent
+qagent dashboard                           # Open web dashboard
 ```
 
 ## Why Agent Orchestrator?
@@ -121,7 +121,7 @@ Running one AI agent in a terminal is easy. Running 30 across different issues, 
 
 **Without orchestration**, you manually: create branches, start agents, check if they're stuck, read CI failures, forward review comments, track which PRs are ready to merge, clean up when done.
 
-**With Agent Orchestrator**, you: `ao spawn` and walk away. The system handles isolation, feedback routing, and status tracking. You review PRs and make decisions — the rest is automated.
+**With Agent Orchestrator**, you: `qagent spawn` and walk away. The system handles isolation, feedback routing, and status tracking. You review PRs and make decisions — the rest is automated.
 
 ## Prerequisites
 
@@ -133,9 +133,9 @@ Running one AI agent in a terminal is easy. Running 30 across different issues, 
 ## Development
 
 ```bash
-pnpm install && pnpm build    # Install and build all packages
-pnpm test                      # Run tests (3,288 test cases)
-pnpm dev                       # Start web dashboard dev server
+bun install && bun run build   # Install and build all packages
+bun run test                   # Run tests (3,288 test cases)
+bun run dev                    # Start web dashboard dev server
 ```
 
 See [CLAUDE.md](CLAUDE.md) for code conventions and architecture details.

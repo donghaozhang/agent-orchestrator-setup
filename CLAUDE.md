@@ -8,7 +8,7 @@ Open-source system for orchestrating parallel AI coding agents. Agent-agnostic (
 
 ## Tech Stack
 
-TypeScript (ESM), Node 20+, pnpm workspaces. Next.js 15 (App Router) + Tailwind. Commander.js CLI. YAML + Zod config. Server-Sent Events for real-time. Flat metadata files + JSONL event log. ESLint + Prettier. vitest.
+TypeScript (ESM), Node 20+, Bun workspaces. Next.js 15 (App Router) + Tailwind. Commander.js CLI. YAML + Zod config. Server-Sent Events for real-time. Flat metadata files + JSONL event log. ESLint + Prettier. vitest.
 
 ## Architecture
 
@@ -32,7 +32,7 @@ TypeScript (ESM), Node 20+, pnpm workspaces. Next.js 15 (App Router) + Tailwind.
 ```
 packages/
   core/          — @composio/ao-core (types, config, services)
-  cli/           — @composio/ao-cli (the `ao` command)
+  cli/           — @composio/ao-cli (the `qagent` command)
   web/           — @composio/ao-web (Next.js dashboard)
   plugins/
     runtime-{tmux,process}/
@@ -47,7 +47,7 @@ packages/
 ## Key Files (Read These First)
 
 1. `packages/core/src/types.ts` — all interfaces (Runtime, Agent, Workspace, Tracker, SCM, Notifier, Terminal)
-2. `agent-orchestrator.yaml.example` — config format
+2. `qagent.yaml.example` — config format
 3. Plugin examples:
    - `packages/plugins/runtime-tmux/src/index.ts` — Runtime implementation
    - `packages/plugins/agent-claude-code/src/index.ts` — Agent implementation
@@ -134,17 +134,17 @@ exec(`git checkout ${branchName}`); // branchName could contain ; rm -rf /
 ## Commands
 
 ```bash
-pnpm install           # install deps
-pnpm build             # build all packages
-pnpm typecheck         # typecheck
-pnpm lint              # ESLint check
-pnpm lint:fix          # ESLint auto-fix
-pnpm format            # Prettier format
-pnpm format:check      # Prettier check (CI)
-pnpm test              # run tests
+bun install            # install deps
+bun run build          # build all packages
+bun run typecheck      # typecheck
+bun run lint           # ESLint check
+bun run lint:fix       # ESLint auto-fix
+bun run format         # Prettier format
+bun run format:check   # Prettier check (CI)
+bun run test           # run tests
 
 # Before committing
-pnpm lint && pnpm typecheck
+bun run lint && bun run typecheck
 ```
 
 ## Development Workflow
@@ -155,23 +155,23 @@ pnpm lint && pnpm typecheck
 
 ```bash
 # 1. Install dependencies (first time only)
-pnpm install
+bun install
 
 # 2. Build all packages (required before dev server)
-pnpm build
+bun run build
 
 # 3. Ensure config exists
-# Copy agent-orchestrator.yaml.example to agent-orchestrator.yaml and configure
-cp agent-orchestrator.yaml.example agent-orchestrator.yaml
+# Copy qagent.yaml.example to qagent.yaml and configure
+cp qagent.yaml.example qagent.yaml
 
 # 4. Run the dev server
 cd packages/web
-pnpm dev
+bun run dev
 ```
 
 **Why build first?** The web package imports from `@composio/ao-core` and plugin packages. These must be built (TypeScript compiled to JavaScript) before Next.js can resolve them.
 
-**Config requirement**: The app expects `agent-orchestrator.yaml` in the working directory. Without it, all API routes will fail with "No agent-orchestrator.yaml found".
+**Config requirement**: The app expects `qagent.yaml` in the working directory. Without it, all API routes will fail with "No qagent.yaml found".
 
 ### Working with Worktrees
 
@@ -180,10 +180,10 @@ If using git worktrees (common for parallel agent work):
 ```bash
 # After creating a worktree
 cd /path/to/worktree
-pnpm install          # Install deps
-pnpm build            # Build packages
-cp /path/to/main/agent-orchestrator.yaml .  # Copy config
-cd packages/web && pnpm dev  # Start server
+bun install           # Install deps
+bun run build         # Build packages
+cp /path/to/main/qagent.yaml .  # Copy config
+cd packages/web && bun run dev  # Start server
 ```
 
 ## Using Playwright (MCP browser tool)
@@ -210,7 +210,7 @@ Then use `browser_navigate` as normal. If Playwright was previously used in the 
 
 ## Config
 
-Config loaded from `agent-orchestrator.yaml` (see `agent-orchestrator.yaml.example`). Paths support `~` expansion. Validated with Zod at load time. Per-project overrides for plugins and reactions.
+Config loaded from `qagent.yaml` (see `qagent.yaml.example`). Paths support `~` expansion. Validated with Zod at load time. Per-project overrides for plugins and reactions.
 
 ## Design Decisions
 

@@ -147,20 +147,20 @@ describe("getLaunchCommand", () => {
 describe("getEnvironment", () => {
   const agent = create();
 
-  it("sets AO_SESSION_ID but not AO_PROJECT_ID (caller's responsibility)", () => {
+  it("sets QAGENT_SESSION_ID but not QAGENT_PROJECT_ID (caller's responsibility)", () => {
     const env = agent.getEnvironment(makeLaunchConfig());
-    expect(env["AO_SESSION_ID"]).toBe("sess-1");
-    expect(env["AO_PROJECT_ID"]).toBeUndefined();
+    expect(env["QAGENT_SESSION_ID"]).toBe("sess-1");
+    expect(env["QAGENT_PROJECT_ID"]).toBeUndefined();
   });
 
-  it("sets AO_ISSUE_ID when provided", () => {
+  it("sets QAGENT_ISSUE_ID when provided", () => {
     const env = agent.getEnvironment(makeLaunchConfig({ issueId: "GH-42" }));
-    expect(env["AO_ISSUE_ID"]).toBe("GH-42");
+    expect(env["QAGENT_ISSUE_ID"]).toBe("GH-42");
   });
 
-  it("omits AO_ISSUE_ID when not provided", () => {
+  it("omits QAGENT_ISSUE_ID when not provided", () => {
     const env = agent.getEnvironment(makeLaunchConfig());
-    expect(env["AO_ISSUE_ID"]).toBeUndefined();
+    expect(env["QAGENT_ISSUE_ID"]).toBeUndefined();
   });
 });
 

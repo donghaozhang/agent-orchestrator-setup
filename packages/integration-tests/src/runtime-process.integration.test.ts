@@ -21,7 +21,7 @@ describe("runtime-process (integration)", () => {
       sessionId,
       workspacePath: "/tmp",
       launchCommand: "cat", // cat echoes stdin to stdout
-      environment: { AO_TEST: "1" },
+      environment: { QAGENT_TEST: "1" },
     });
 
     expect(handle.id).toBe(sessionId);

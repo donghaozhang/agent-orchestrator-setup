@@ -199,20 +199,20 @@ describe("getEnvironment", () => {
     expect(env["CLAUDECODE"]).toBe("");
   });
 
-  it("sets AO_SESSION_ID but not AO_PROJECT_ID (caller's responsibility)", () => {
+  it("sets QAGENT_SESSION_ID but not QAGENT_PROJECT_ID (caller's responsibility)", () => {
     const env = agent.getEnvironment(makeLaunchConfig());
-    expect(env["AO_SESSION_ID"]).toBe("sess-1");
-    expect(env["AO_PROJECT_ID"]).toBeUndefined();
+    expect(env["QAGENT_SESSION_ID"]).toBe("sess-1");
+    expect(env["QAGENT_PROJECT_ID"]).toBeUndefined();
   });
 
-  it("sets AO_ISSUE_ID when provided", () => {
+  it("sets QAGENT_ISSUE_ID when provided", () => {
     const env = agent.getEnvironment(makeLaunchConfig({ issueId: "INT-100" }));
-    expect(env["AO_ISSUE_ID"]).toBe("INT-100");
+    expect(env["QAGENT_ISSUE_ID"]).toBe("INT-100");
   });
 
-  it("does not set AO_ISSUE_ID when not provided", () => {
+  it("does not set QAGENT_ISSUE_ID when not provided", () => {
     const env = agent.getEnvironment(makeLaunchConfig());
-    expect(env["AO_ISSUE_ID"]).toBeUndefined();
+    expect(env["QAGENT_ISSUE_ID"]).toBeUndefined();
   });
 });
 

@@ -13,6 +13,9 @@ import type { FitAddon as FitAddonType } from "@xterm/addon-fit";
 
 interface DirectTerminalProps {
   sessionId: string;
+  /** Actual tmux session name (hash-prefixed). If provided, used for WebSocket
+   *  connection instead of sessionId. The sessionId is still shown in the UI. */
+  tmuxName?: string;
   startFullscreen?: boolean;
   /** Visual variant. "orchestrator" uses violet accent; "agent" (default) uses blue. */
   variant?: "agent" | "orchestrator";
@@ -33,6 +36,7 @@ interface DirectTerminalProps {
  */
 export function DirectTerminal({
   sessionId,
+  tmuxName,
   startFullscreen = false,
   variant = "agent",
   height = "max(440px, calc(100vh - 440px))",
@@ -155,11 +159,13 @@ export function DirectTerminal({
         // Fit terminal to container
         fit.fit();
 
-        // Connect WebSocket
+        // Connect WebSocket — use tmuxName (the actual tmux session name) if available,
+        // otherwise fall back to sessionId for backwards compatibility
         const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
         const hostname = window.location.hostname;
         const port = process.env.NEXT_PUBLIC_DIRECT_TERMINAL_PORT ?? "14801";
-        const wsUrl = `${protocol}//${hostname}:${port}/ws?session=${encodeURIComponent(sessionId)}`;
+        const wsSessionId = tmuxName || sessionId;
+        const wsUrl = `${protocol}//${hostname}:${port}/ws?session=${encodeURIComponent(wsSessionId)}`;
 
         console.log("[DirectTerminal] Connecting to:", wsUrl);
         const websocket = new WebSocket(wsUrl);
@@ -243,7 +249,7 @@ export function DirectTerminal({
       mounted = false;
       cleanup?.();
     };
-  }, [sessionId, variant]);
+  }, [sessionId, tmuxName, variant]);
 
   // Re-fit terminal when fullscreen changes
   useEffect(() => {

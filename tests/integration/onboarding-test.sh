@@ -49,31 +49,31 @@ if ! ./scripts/setup.sh; then
 fi
 end_step "Step 2: Setup completed"
 
-# Step 3: Verify ao command is available
-start_step "Step 3: Verify ao command"
-if ! command -v ao &> /dev/null; then
-    fail_step "Step 3: ao command not found (npm link failed?)"
+# Step 3: Verify qagent command is available
+start_step "Step 3: Verify qagent command"
+if ! command -v qagent &> /dev/null; then
+    fail_step "Step 3: qagent command not found (npm link failed?)"
 fi
-ao --version || fail_step "Step 3: ao --version failed"
-end_step "Step 3: ao command available"
+qagent --version || fail_step "Step 3: qagent --version failed"
+end_step "Step 3: qagent command available"
 
 # Step 4: Create minimal test config
 start_step "Step 4: Create test configuration"
-mkdir -p /tmp/ao-test-project
-cd /tmp/ao-test-project
+mkdir -p /tmp/qagent-test-project
+cd /tmp/qagent-test-project
 git init
 git config user.email "test@example.com"
 git config user.name "Test User"
 
-cat > agent-orchestrator.yaml << 'EOF'
-dataDir: /tmp/ao-test-data
-worktreeDir: /tmp/ao-test-worktrees
+cat > qagent.yaml << 'EOF'
+dataDir: /tmp/qagent-test-data
+worktreeDir: /tmp/qagent-test-worktrees
 port: 9000
 
 projects:
   test-project:
     repo: test/repo
-    path: /tmp/ao-test-project
+    path: /tmp/qagent-test-project
     defaultBranch: main
 EOF
 
@@ -81,8 +81,7 @@ end_step "Step 4: Configuration created"
 
 # Step 5: Verify config is valid
 start_step "Step 5: Validate configuration"
-# ao init would fail if run again, so we just verify the file is readable
-if [ ! -f agent-orchestrator.yaml ]; then
+if [ ! -f qagent.yaml ]; then
     fail_step "Step 5: Config file not found"
 fi
 end_step "Step 5: Configuration validated"
@@ -90,7 +89,7 @@ end_step "Step 5: Configuration validated"
 # Step 6: Start orchestrator (in background)
 start_step "Step 6: Start orchestrator"
 # Start in background and capture PID
-ao start --no-orchestrator &  # Only start dashboard, not the orchestrator session
+qagent start --no-orchestrator &  # Only start dashboard, not the orchestrator session
 DASHBOARD_PID=$!
 
 # Wait for dashboard to be ready (max 30 seconds)
@@ -141,7 +140,7 @@ for i in $(seq 1 $max_retries); do
         break
     fi
     if [ $i -eq $max_retries ]; then
-        fail_step "Step 8: WebSocket terminal server not responding (bug: ao start didn't launch all services)"
+        fail_step "Step 8: WebSocket terminal server not responding (bug: qagent start didn't launch all services)"
     fi
     sleep 1
 done
@@ -156,9 +155,9 @@ echo "  Creating test orchestrator session..."
 tmux new-session -d -s test-project-orchestrator || true
 
 # Write minimal metadata
-mkdir -p /tmp/ao-test-data
-cat > /tmp/ao-test-data/test-project-orchestrator << 'EOF'
-worktree=/tmp/ao-test-project
+mkdir -p /tmp/qagent-test-data
+cat > /tmp/qagent-test-data/test-project-orchestrator << 'EOF'
+worktree=/tmp/qagent-test-project
 branch=main
 status=working
 project=test-project

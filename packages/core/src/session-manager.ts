@@ -174,7 +174,7 @@ export function createSessionManager(deps: SessionManagerDeps): SessionManager {
 
   /**
    * List all session files across all projects (or filtered by projectId).
-   * Scans project-specific directories under ~/.agent-orchestrator/{hash}-{projectId}/sessions/
+   * Scans project-specific directories under ~/.qagent/{hash}-{projectId}/sessions/
    *
    * Note: projectId is the config key (e.g., "test-project"), not the path basename.
    */
@@ -506,10 +506,10 @@ export function createSessionManager(deps: SessionManagerDeps): SessionManager {
         launchCommand,
         environment: {
           ...environment,
-          AO_SESSION: sessionId,
-          AO_DATA_DIR: sessionsDir, // Pass sessions directory (not root dataDir)
-          AO_SESSION_NAME: sessionId, // User-facing session name
-          ...(tmuxName && { AO_TMUX_NAME: tmuxName }), // Tmux session name if using new arch
+          QAGENT_SESSION: sessionId,
+          QAGENT_DATA_DIR: sessionsDir, // Pass sessions directory (not root dataDir)
+          QAGENT_SESSION_NAME: sessionId, // User-facing session name
+          ...(tmuxName && { QAGENT_TMUX_NAME: tmuxName }), // Tmux session name if using new arch
         },
       });
     } catch (err) {

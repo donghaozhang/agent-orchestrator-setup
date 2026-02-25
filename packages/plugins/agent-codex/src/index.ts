@@ -19,8 +19,8 @@ import { randomBytes } from "node:crypto";
 
 const execFileAsync = promisify(execFile);
 
-/** Shared bin directory for ao shell wrappers (prepended to PATH) */
-const AO_BIN_DIR = join(homedir(), ".ao", "bin");
+/** Shared bin directory for qagent shell wrappers (prepended to PATH) */
+const QAGENT_BIN_DIR = join(homedir(), ".qagent", "bin");
 
 // =============================================================================
 // Plugin Manifest
@@ -39,38 +39,38 @@ export const manifest = {
 
 /**
  * Helper script sourced by both gh and git wrappers.
- * Provides update_ao_metadata() for writing key=value to the session file.
+ * Provides update_qagent_metadata() for writing key=value to the session file.
  */
 /* eslint-disable no-useless-escape -- \$ escapes are intentional: bash scripts in JS template literals */
-const AO_METADATA_HELPER = `#!/usr/bin/env bash
-# ao-metadata-helper — shared by gh/git wrappers
-# Provides: update_ao_metadata <key> <value>
+const QAGENT_METADATA_HELPER = `#!/usr/bin/env bash
+# qagent-metadata-helper — shared by gh/git wrappers
+# Provides: update_qagent_metadata <key> <value>
 
-update_ao_metadata() {
+update_qagent_metadata() {
   local key="\$1" value="\$2"
-  local ao_dir="\${AO_DATA_DIR:-}"
-  local ao_session="\${AO_SESSION:-}"
+  local qagent_dir="\${QAGENT_DATA_DIR:-}"
+  local qagent_session="\${QAGENT_SESSION:-}"
 
-  [[ -z "\$ao_dir" || -z "\$ao_session" ]] && return 0
+  [[ -z "\$qagent_dir" || -z "\$qagent_session" ]] && return 0
 
   # Validate: session name must not contain path separators or traversal
-  case "\$ao_session" in
+  case "\$qagent_session" in
     */* | *..*) return 0 ;;
   esac
 
-  # Validate: ao_dir must be an absolute path under known ao directories or /tmp
-  case "\$ao_dir" in
-    "\$HOME"/.ao/* | "\$HOME"/.agent-orchestrator/* | /tmp/*) ;;
+  # Validate: qagent_dir must be an absolute path under known qagent directories or /tmp
+  case "\$qagent_dir" in
+    "\$HOME"/.qagent/* | /tmp/*) ;;
     *) return 0 ;;
   esac
 
-  local metadata_file="\$ao_dir/\$ao_session"
+  local metadata_file="\$qagent_dir/\$qagent_session"
 
-  # Resolve and verify the file is still within ao_dir
-  local real_dir real_ao_dir
-  real_ao_dir="\$(cd "\$ao_dir" 2>/dev/null && pwd -P)" || return 0
+  # Resolve and verify the file is still within qagent_dir
+  local real_dir real_qagent_dir
+  real_qagent_dir="\$(cd "\$qagent_dir" 2>/dev/null && pwd -P)" || return 0
   real_dir="\$(cd "\$(dirname "\$metadata_file")" 2>/dev/null && pwd -P)" || return 0
-  [[ "\$real_dir" == "\$real_ao_dir"* ]] || return 0
+  [[ "\$real_dir" == "\$real_qagent_dir"* ]] || return 0
 
   [[ -f "\$metadata_file" ]] || return 0
 
@@ -98,21 +98,21 @@ update_ao_metadata() {
  * session metadata. All other commands pass through transparently.
  */
 const GH_WRAPPER = `#!/usr/bin/env bash
-# ao gh wrapper — auto-updates session metadata on PR operations
+# qagent gh wrapper — auto-updates session metadata on PR operations
 
 # Find real gh by removing our wrapper directory from PATH
-ao_bin_dir="\$(cd "\$(dirname "\$0")" && pwd)"
-clean_path="\$(echo "\$PATH" | tr ':' '\\n' | grep -Fxv "\$ao_bin_dir" | grep . | tr '\\n' ':')"
+qagent_bin_dir="\$(cd "\$(dirname "\$0")" && pwd)"
+clean_path="\$(echo "\$PATH" | tr ':' '\\n' | grep -Fxv "\$qagent_bin_dir" | grep . | tr '\\n' ':')"
 clean_path="\${clean_path%:}"
 real_gh="\$(PATH="\$clean_path" command -v gh 2>/dev/null)"
 
 if [[ -z "\$real_gh" ]]; then
-  echo "ao-wrapper: gh not found in PATH" >&2
+  echo "qagent-wrapper: gh not found in PATH" >&2
   exit 127
 fi
 
 # Source the metadata helper
-source "\$ao_bin_dir/ao-metadata-helper.sh" 2>/dev/null || true
+source "\$qagent_bin_dir/qagent-metadata-helper.sh" 2>/dev/null || true
 
 # Only capture output for commands we need to parse (pr/create, pr/merge).
 # All other commands pass through transparently without stream merging.
@@ -130,12 +130,12 @@ case "\$1/\$2" in
         pr/create)
           pr_url="\$(echo "\$output" | grep -Eo 'https://github\\.com/[^/]+/[^/]+/pull/[0-9]+' | head -1)"
           if [[ -n "\$pr_url" ]]; then
-            update_ao_metadata pr "\$pr_url"
-            update_ao_metadata status pr_open
+            update_qagent_metadata pr "\$pr_url"
+            update_qagent_metadata status pr_open
           fi
           ;;
         pr/merge)
-          update_ao_metadata status merged
+          update_qagent_metadata status merged
           ;;
       esac
     fi
@@ -153,21 +153,21 @@ esac
  * All other commands pass through transparently.
  */
 const GIT_WRAPPER = `#!/usr/bin/env bash
-# ao git wrapper — auto-updates session metadata on branch operations
+# qagent git wrapper — auto-updates session metadata on branch operations
 
 # Find real git by removing our wrapper directory from PATH
-ao_bin_dir="\$(cd "\$(dirname "\$0")" && pwd)"
-clean_path="\$(echo "\$PATH" | tr ':' '\\n' | grep -Fxv "\$ao_bin_dir" | grep . | tr '\\n' ':')"
+qagent_bin_dir="\$(cd "\$(dirname "\$0")" && pwd)"
+clean_path="\$(echo "\$PATH" | tr ':' '\\n' | grep -Fxv "\$qagent_bin_dir" | grep . | tr '\\n' ':')"
 clean_path="\${clean_path%:}"
 real_git="\$(PATH="\$clean_path" command -v git 2>/dev/null)"
 
 if [[ -z "\$real_git" ]]; then
-  echo "ao-wrapper: git not found in PATH" >&2
+  echo "qagent-wrapper: git not found in PATH" >&2
   exit 127
 fi
 
 # Source the metadata helper
-source "\$ao_bin_dir/ao-metadata-helper.sh" 2>/dev/null || true
+source "\$qagent_bin_dir/qagent-metadata-helper.sh" 2>/dev/null || true
 
 # Run real git
 "\$real_git" "\$@"
@@ -177,10 +177,10 @@ exit_code=\$?
 if [[ \$exit_code -eq 0 ]]; then
   case "\$1/\$2" in
     checkout/-b)
-      update_ao_metadata branch "\$3"
+      update_qagent_metadata branch "\$3"
       ;;
     switch/-c)
-      update_ao_metadata branch "\$3"
+      update_qagent_metadata branch "\$3"
       ;;
   esac
 fi
@@ -197,16 +197,16 @@ exit \$exit_code
  * handle metadata updates automatically, but AGENTS.md reinforces the intent
  * and helps if the wrappers are bypassed.
  */
-const AO_AGENTS_MD_SECTION = `
-## Agent Orchestrator (ao) Session
+const QAGENT_AGENTS_MD_SECTION = `
+## Agent Orchestrator (qagent) Session
 
 You are running inside an Agent Orchestrator managed workspace.
 Session metadata is updated automatically via shell wrappers.
 
 If automatic updates fail, you can manually update metadata:
 \`\`\`bash
-~/.ao/bin/ao-metadata-helper.sh  # sourced automatically
-# Then call: update_ao_metadata <key> <value>
+~/.qagent/bin/qagent-metadata-helper.sh  # sourced automatically
+# Then call: update_qagent_metadata <key> <value>
 \`\`\`
 `;
 /* eslint-enable no-useless-escape */
@@ -224,17 +224,17 @@ async function atomicWriteFile(filePath: string, content: string, mode: number):
 }
 
 async function setupCodexWorkspace(workspacePath: string): Promise<void> {
-  // 1. Write shared wrappers to ~/.ao/bin/
-  await mkdir(AO_BIN_DIR, { recursive: true });
+  // 1. Write shared wrappers to ~/.qagent/bin/
+  await mkdir(QAGENT_BIN_DIR, { recursive: true });
 
   await atomicWriteFile(
-    join(AO_BIN_DIR, "ao-metadata-helper.sh"),
-    AO_METADATA_HELPER,
+    join(QAGENT_BIN_DIR, "qagent-metadata-helper.sh"),
+    QAGENT_METADATA_HELPER,
     0o755,
   );
 
   // Only write wrappers if they don't exist or are outdated (check marker)
-  const markerPath = join(AO_BIN_DIR, ".ao-version");
+  const markerPath = join(QAGENT_BIN_DIR, ".qagent-version");
   const currentVersion = "0.1.0";
   let needsUpdate = true;
   try {
@@ -248,12 +248,12 @@ async function setupCodexWorkspace(workspacePath: string): Promise<void> {
     // Write wrappers atomically, then write the version marker last.
     // If we crash between wrapper writes and marker write, the next
     // invocation will redo the writes (safe: wrappers are idempotent).
-    await atomicWriteFile(join(AO_BIN_DIR, "gh"), GH_WRAPPER, 0o755);
-    await atomicWriteFile(join(AO_BIN_DIR, "git"), GIT_WRAPPER, 0o755);
+    await atomicWriteFile(join(QAGENT_BIN_DIR, "gh"), GH_WRAPPER, 0o755);
+    await atomicWriteFile(join(QAGENT_BIN_DIR, "git"), GIT_WRAPPER, 0o755);
     await atomicWriteFile(markerPath, currentVersion, 0o644);
   }
 
-  // 2. Append ao section to AGENTS.md (create if missing, skip if already present)
+  // 2. Append qagent section to AGENTS.md (create if missing, skip if already present)
   const agentsMdPath = join(workspacePath, "AGENTS.md");
   let existing = "";
   try {
@@ -262,10 +262,10 @@ async function setupCodexWorkspace(workspacePath: string): Promise<void> {
     // File doesn't exist yet
   }
 
-  if (!existing.includes("Agent Orchestrator (ao) Session")) {
+  if (!existing.includes("Agent Orchestrator (qagent) Session")) {
     const content = existing
-      ? existing.trimEnd() + "\n" + AO_AGENTS_MD_SECTION
-      : AO_AGENTS_MD_SECTION.trimStart();
+      ? existing.trimEnd() + "\n" + QAGENT_AGENTS_MD_SECTION
+      : QAGENT_AGENTS_MD_SECTION.trimStart();
     await writeFile(agentsMdPath, content, "utf-8");
   }
 }
@@ -283,7 +283,7 @@ function createCodexAgent(): Agent {
       const parts: string[] = ["codex"];
 
       if (config.permissions === "skip") {
-        parts.push("--full-auto");
+        parts.push("--dangerously-bypass-approvals-and-sandbox");
       }
 
       if (config.model) {
@@ -309,16 +309,16 @@ function createCodexAgent(): Agent {
 
     getEnvironment(config: AgentLaunchConfig): Record<string, string> {
       const env: Record<string, string> = {};
-      env["AO_SESSION_ID"] = config.sessionId;
-      // NOTE: AO_PROJECT_ID is the caller's responsibility (spawn.ts sets it)
+      env["QAGENT_SESSION_ID"] = config.sessionId;
+      // NOTE: QAGENT_PROJECT_ID is the caller's responsibility (spawn.ts sets it)
       if (config.issueId) {
-        env["AO_ISSUE_ID"] = config.issueId;
+        env["QAGENT_ISSUE_ID"] = config.issueId;
       }
 
-      // Prepend ~/.ao/bin to PATH so our gh/git wrappers intercept commands.
+      // Prepend ~/.qagent/bin to PATH so our gh/git wrappers intercept commands.
       // The wrappers strip this directory from PATH before calling the real
       // binary, so there's no infinite recursion.
-      env["PATH"] = `${AO_BIN_DIR}:${process.env["PATH"] ?? "/usr/bin:/bin"}`;
+      env["PATH"] = `${QAGENT_BIN_DIR}:${process.env["PATH"] ?? "/usr/bin:/bin"}`;
 
       return env;
     },

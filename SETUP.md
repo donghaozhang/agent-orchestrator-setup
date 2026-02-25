@@ -66,41 +66,41 @@ The package is not yet published to npm. Install by building from source:
 git clone https://github.com/ComposioHQ/agent-orchestrator
 cd agent-orchestrator
 
-# Install dependencies (requires pnpm)
-pnpm install
+# Install dependencies (requires bun)
+bun install
 
 # Build all packages
-pnpm build
+bun run build
 
 # Link CLI globally
 npm link -g packages/cli
 
 # Verify
-ao --version
+qagent --version
 ```
 
 > **Coming soon:** `npm install -g @composio/ao-cli` once published to npm.
 
-**If you don't have pnpm:**
+**If you don't have bun:**
 
 ```bash
-npm install -g pnpm
+curl -fsSL https://bun.sh/install | bash
 ```
 
 ## First-Time Configuration
 
-### Quick Setup with `ao init`
+### Quick Setup with `qagent init`
 
 The easiest way to get started:
 
 ```bash
 cd ~/your-repo
-ao init
+qagent init
 ```
 
 The wizard will prompt you for:
 
-1. **Data directory** - Where to store session metadata (default: `~/.agent-orchestrator`)
+1. **Data directory** - Where to store session metadata (default: `~/.qagent`)
 2. **Worktree directory** - Where to create isolated workspaces (default: `~/.worktrees`)
 3. **Dashboard port** - Web interface port (default: `3000`)
 4. **Runtime plugin** - Session runtime (default: `tmux`)
@@ -112,7 +112,7 @@ The wizard will prompt you for:
 10. **Local path** - Path to your repository
 11. **Default branch** - Main branch name (usually `main` or `master`)
 
-### What `ao init` Detects Automatically
+### What `qagent init` Detects Automatically
 
 The wizard is smart and tries to help:
 
@@ -128,15 +128,15 @@ The wizard is smart and tries to help:
 If you prefer to write the config manually:
 
 ```bash
-cp agent-orchestrator.yaml.example agent-orchestrator.yaml
-nano agent-orchestrator.yaml
+cp qagent.yaml.example qagent.yaml
+nano qagent.yaml
 ```
 
 Or start from an example:
 
 ```bash
-cp examples/simple-github.yaml agent-orchestrator.yaml
-nano agent-orchestrator.yaml
+cp examples/simple-github.yaml qagent.yaml
+nano qagent.yaml
 ```
 
 ## Configuration Reference
@@ -146,7 +146,7 @@ nano agent-orchestrator.yaml
 The absolute minimum needed:
 
 ```yaml
-dataDir: ~/.agent-orchestrator
+dataDir: ~/.qagent
 worktreeDir: ~/.worktrees
 port: 3000
 
@@ -159,7 +159,7 @@ projects:
 
 ### Full Configuration Schema
 
-See [agent-orchestrator.yaml.example](./agent-orchestrator.yaml.example) for a fully commented example with all options.
+See [qagent.yaml.example](./qagent.yaml.example) for a fully commented example with all options.
 
 ### Plugin Slots
 
@@ -310,7 +310,7 @@ gh auth status
    - Click "Create new key" or use existing key
    - Team ID is visible in your Linear workspace URL or via API
 
-4. Configure in `agent-orchestrator.yaml`:
+4. Configure in `qagent.yaml`:
    ```yaml
    projects:
      my-app:
@@ -337,7 +337,7 @@ echo $LINEAR_API_KEY  # Should print your key
    source ~/.zshrc
    ```
 
-3. Configure in `agent-orchestrator.yaml`:
+3. Configure in `qagent.yaml`:
    ```yaml
    notifiers:
      slack:
@@ -367,7 +367,7 @@ See [CLAUDE.md](./CLAUDE.md) for plugin development guidelines.
 
 ## Troubleshooting
 
-### "No agent-orchestrator.yaml found"
+### "No qagent.yaml found"
 
 **Problem:** The orchestrator can't find your config file.
 
@@ -375,10 +375,10 @@ See [CLAUDE.md](./CLAUDE.md) for plugin development guidelines.
 
 ```bash
 # Run init wizard
-ao init
+qagent init
 
 # Or copy an example
-cp examples/simple-github.yaml agent-orchestrator.yaml
+cp examples/simple-github.yaml qagent.yaml
 ```
 
 ### "tmux not found"
@@ -444,7 +444,7 @@ echo $LINEAR_API_KEY
 **Solution:**
 
 ```bash
-# Option 1: Change port in agent-orchestrator.yaml
+# Option 1: Change port in qagent.yaml
 port: 3001
 
 # Option 2: Find and kill the process using the port
@@ -478,10 +478,10 @@ df -h
 
 ```bash
 # List active sessions
-ao session ls
+qagent session ls
 
 # Check status dashboard
-ao status
+qagent status
 ```
 
 ### "Agent not responding"
@@ -492,17 +492,17 @@ ao status
 
 ```bash
 # Check session status
-ao status
+qagent status
 
 # Attach to session to investigate
-ao open <session-name>
+qagent open <session-name>
 
 # Send message to agent
-ao send <session-name> "Please report your current status"
+qagent send <session-name> "Please report your current status"
 
 # Kill and respawn if necessary
-ao session kill <session-name>
-ao spawn <project-id> <issue-id>
+qagent session kill <session-name>
+qagent spawn <project-id> <issue-id>
 ```
 
 ### "Permission denied" when spawning
@@ -524,7 +524,7 @@ gh auth login
 
 ### "YAML parse error"
 
-**Problem:** Syntax error in `agent-orchestrator.yaml`.
+**Problem:** Syntax error in `qagent.yaml`.
 
 **Solution:**
 
@@ -732,25 +732,25 @@ projects:
 
 Three ways:
 
-1. **Dashboard** - `ao start` then visit http://localhost:3000 (or your configured `port:`)
-2. **CLI status** - `ao status` (text-based dashboard)
-3. **Attach to session** - `ao open <session-name>` (live terminal)
+1. **Dashboard** - `qagent start` then visit http://localhost:3000 (or your configured `port:`)
+2. **CLI status** - `qagent status` (text-based dashboard)
+3. **Attach to session** - `qagent open <session-name>` (live terminal)
 
 ### What if an agent gets stuck?
 
 ```bash
 # Check status
-ao status
+qagent status
 
 # Send message
-ao send <session-name> "What's your current status?"
+qagent send <session-name> "What's your current status?"
 
 # Attach to investigate
-ao open <session-name>
+qagent open <session-name>
 
 # Kill and respawn if necessary
-ao session kill <session-name>
-ao spawn <project-id> <issue-id>
+qagent session kill <session-name>
+qagent spawn <project-id> <issue-id>
 ```
 
 Agents also send "stuck" notifications automatically after inactivity threshold.
@@ -759,13 +759,13 @@ Agents also send "stuck" notifications automatically after inactivity threshold.
 
 ```bash
 # List all sessions
-ao session ls
+qagent session ls
 
 # Kill specific session
-ao session kill <session-name>
+qagent session kill <session-name>
 
 # Cleanup script (example)
-ao session ls --json | jq -r '.[] | select(.status == "merged") | .id' | xargs -I{} ao session kill {}
+qagent session ls --json | jq -r '.[] | select(.status == "merged") | .id' | xargs -I{} qagent session kill {}
 ```
 
 ### Can I run multiple orchestrators?
@@ -786,9 +786,9 @@ Useful for:
 
 ## Next Steps
 
-1. **Run `ao init`** - Create your first config
-2. **Spawn an agent** - `ao spawn my-app ISSUE-123`
-3. **Monitor progress** - `ao status` or dashboard
+1. **Run `qagent init`** - Create your first config
+2. **Spawn an agent** - `qagent spawn my-app ISSUE-123`
+3. **Monitor progress** - `qagent status` or dashboard
 4. **Read [CLAUDE.md](./CLAUDE.md)** - Code conventions and architecture
 5. **Explore examples** - See [examples/](./examples/) for more configs
 6. **Join the community** - Report issues, share configs, contribute plugins

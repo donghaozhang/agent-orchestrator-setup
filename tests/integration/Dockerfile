@@ -9,9 +9,6 @@ RUN apt-get update && apt-get install -y \
     jq \
     && rm -rf /var/lib/apt/lists/*
 
-# Install pnpm globally (typically installed by developer)
-RUN npm install -g pnpm
-
 # Install GitHub CLI (common for developers working with GitHub)
 RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
     && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
@@ -35,6 +32,10 @@ RUN mkdir -p /home/testuser/.npm-global && \
 USER testuser
 RUN npm config set prefix '/home/testuser/.npm-global'
 ENV PATH="/home/testuser/.npm-global/bin:$PATH"
+
+# Install bun as testuser (simulates developer installing bun)
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/home/testuser/.bun/bin:$PATH"
 
 WORKDIR /home/testuser
 

@@ -37,7 +37,7 @@ describe("Config Loading", () => {
 
   describe("findConfigFile", () => {
     it("should find config in current directory", () => {
-      const configPath = join(testDir, "agent-orchestrator.yaml");
+      const configPath = join(testDir, "qagent.yaml");
       writeFileSync(configPath, "projects: {}");
 
       const found = findConfigFile();
@@ -45,7 +45,7 @@ describe("Config Loading", () => {
       expect(realpathSync(found!)).toBe(realpathSync(configPath));
     });
 
-    it("should prioritize AO_CONFIG_PATH env var", () => {
+    it("should prioritize QAGENT_CONFIG_PATH env var", () => {
       // Create config in a different location
       const customDir = join(testDir, "custom");
       mkdirSync(customDir);
@@ -53,11 +53,11 @@ describe("Config Loading", () => {
       writeFileSync(customConfig, "projects: {}");
 
       // Create config in current directory too
-      const localConfig = join(testDir, "agent-orchestrator.yaml");
+      const localConfig = join(testDir, "qagent.yaml");
       writeFileSync(localConfig, "projects: {}");
 
       // Set env var to point to custom location
-      process.env["AO_CONFIG_PATH"] = customConfig;
+      process.env["QAGENT_CONFIG_PATH"] = customConfig;
 
       const found = findConfigFile();
       expect(found).toBe(customConfig);
@@ -70,7 +70,7 @@ describe("Config Loading", () => {
   });
 
   describe("loadConfig", () => {
-    it("should load config from AO_CONFIG_PATH env var", () => {
+    it("should load config from QAGENT_CONFIG_PATH env var", () => {
       const configPath = join(testDir, "test-config.yaml");
       writeFileSync(
         configPath,
@@ -84,7 +84,7 @@ projects:
 `,
       );
 
-      process.env["AO_CONFIG_PATH"] = configPath;
+      process.env["QAGENT_CONFIG_PATH"] = configPath;
 
       const config = loadConfig();
       expect(config.port).toBe(4000);
@@ -110,7 +110,7 @@ projects:
     });
 
     it("should throw error if config not found", () => {
-      expect(() => loadConfig()).toThrow("No agent-orchestrator.yaml found");
+      expect(() => loadConfig()).toThrow("No qagent.yaml found");
     });
   });
 
@@ -122,7 +122,7 @@ projects:
       writeFileSync(envConfig, "port: 3001\nprojects: {}");
       writeFileSync(explicitConfig, "port: 3002\nprojects: {}");
 
-      process.env["AO_CONFIG_PATH"] = envConfig;
+      process.env["QAGENT_CONFIG_PATH"] = envConfig;
 
       const config = loadConfig(explicitConfig);
       expect(config.port).toBe(3002); // Should use explicit, not env
@@ -130,12 +130,12 @@ projects:
 
     it("should use env var over default search", () => {
       const envConfig = join(testDir, "env-config.yaml");
-      const localConfig = join(testDir, "agent-orchestrator.yaml");
+      const localConfig = join(testDir, "qagent.yaml");
 
       writeFileSync(envConfig, "port: 3001\nprojects: {}");
       writeFileSync(localConfig, "port: 3002\nprojects: {}");
 
-      process.env["AO_CONFIG_PATH"] = envConfig;
+      process.env["QAGENT_CONFIG_PATH"] = envConfig;
 
       const config = loadConfig();
       expect(config.port).toBe(3001); // Should use env, not local

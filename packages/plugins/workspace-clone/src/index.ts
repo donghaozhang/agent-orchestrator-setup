@@ -46,7 +46,7 @@ function expandPath(p: string): string {
 export function create(config?: Record<string, unknown>): Workspace {
   const cloneBaseDir = config?.cloneDir
     ? expandPath(config.cloneDir as string)
-    : join(homedir(), ".ao-clones");
+    : join(homedir(), ".qagent-clones");
 
   return {
     name: "clone",

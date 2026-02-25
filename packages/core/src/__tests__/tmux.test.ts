@@ -138,12 +138,12 @@ describe("newSession", () => {
     await newSession({
       name: "test-2",
       cwd: "/tmp",
-      environment: { AO_SESSION: "test-2", SOME_VAR: "value" },
+      environment: { QAGENT_SESSION: "test-2", SOME_VAR: "value" },
     });
 
     const args = mockExecFile.mock.calls[0][1] as string[];
     expect(args).toContain("-e");
-    expect(args).toContain("AO_SESSION=test-2");
+    expect(args).toContain("QAGENT_SESSION=test-2");
     expect(args).toContain("SOME_VAR=value");
   });
 

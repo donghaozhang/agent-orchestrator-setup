@@ -148,9 +148,9 @@ describe("getLaunchCommand", () => {
     expect(agent.getLaunchCommand(makeLaunchConfig())).toBe("codex");
   });
 
-  it("includes --full-auto when permissions=skip", () => {
+  it("includes --dangerously-bypass-approvals-and-sandbox when permissions=skip", () => {
     const cmd = agent.getLaunchCommand(makeLaunchConfig({ permissions: "skip" }));
-    expect(cmd).toContain("--full-auto");
+    expect(cmd).toContain("--dangerously-bypass-approvals-and-sandbox");
   });
 
   it("includes --model with shell-escaped value", () => {
@@ -167,7 +167,7 @@ describe("getLaunchCommand", () => {
     const cmd = agent.getLaunchCommand(
       makeLaunchConfig({ permissions: "skip", model: "o3", prompt: "Go" }),
     );
-    expect(cmd).toBe("codex --full-auto --model 'o3' -- 'Go'");
+    expect(cmd).toBe("codex --dangerously-bypass-approvals-and-sandbox --model 'o3' -- 'Go'");
   });
 
   it("escapes single quotes in prompt (POSIX shell escaping)", () => {
@@ -203,7 +203,7 @@ describe("getLaunchCommand", () => {
 
   it("omits optional flags when not provided", () => {
     const cmd = agent.getLaunchCommand(makeLaunchConfig());
-    expect(cmd).not.toContain("--full-auto");
+    expect(cmd).not.toContain("--dangerously-bypass-approvals-and-sandbox");
     expect(cmd).not.toContain("--model");
     expect(cmd).not.toContain("-c");
   });
@@ -215,30 +215,30 @@ describe("getLaunchCommand", () => {
 describe("getEnvironment", () => {
   const agent = create();
 
-  it("sets AO_SESSION_ID but not AO_PROJECT_ID (caller's responsibility)", () => {
+  it("sets QAGENT_SESSION_ID but not QAGENT_PROJECT_ID (caller's responsibility)", () => {
     const env = agent.getEnvironment(makeLaunchConfig());
-    expect(env["AO_SESSION_ID"]).toBe("sess-1");
-    expect(env["AO_PROJECT_ID"]).toBeUndefined();
+    expect(env["QAGENT_SESSION_ID"]).toBe("sess-1");
+    expect(env["QAGENT_PROJECT_ID"]).toBeUndefined();
   });
 
-  it("sets AO_ISSUE_ID when provided", () => {
+  it("sets QAGENT_ISSUE_ID when provided", () => {
     const env = agent.getEnvironment(makeLaunchConfig({ issueId: "GH-42" }));
-    expect(env["AO_ISSUE_ID"]).toBe("GH-42");
+    expect(env["QAGENT_ISSUE_ID"]).toBe("GH-42");
   });
 
-  it("omits AO_ISSUE_ID when not provided", () => {
+  it("omits QAGENT_ISSUE_ID when not provided", () => {
     const env = agent.getEnvironment(makeLaunchConfig());
-    expect(env["AO_ISSUE_ID"]).toBeUndefined();
+    expect(env["QAGENT_ISSUE_ID"]).toBeUndefined();
   });
 
-  it("prepends ~/.ao/bin to PATH for shell wrappers", () => {
+  it("prepends ~/.qagent/bin to PATH for shell wrappers", () => {
     const env = agent.getEnvironment(makeLaunchConfig());
-    expect(env["PATH"]).toMatch(/^.*\/\.ao\/bin:/);
+    expect(env["PATH"]).toMatch(/^.*\/\.qagent\/bin:/);
   });
 
-  it("PATH starts with the ao bin dir specifically", () => {
+  it("PATH starts with the qagent bin dir specifically", () => {
     const env = agent.getEnvironment(makeLaunchConfig());
-    expect(env["PATH"]?.startsWith("/mock/home/.ao/bin:")).toBe(true);
+    expect(env["PATH"]?.startsWith("/mock/home/.qagent/bin:")).toBe(true);
   });
 
   it("falls back to /usr/bin:/bin when process.env.PATH is undefined", () => {
@@ -504,7 +504,7 @@ describe("setupWorkspaceHooks", () => {
     expect(typeof agent.setupWorkspaceHooks).toBe("function");
   });
 
-  it("creates ~/.ao/bin directory", async () => {
+  it("creates ~/.qagent/bin directory", async () => {
     // Version marker doesn't exist — triggers full install
     mockReadFile.mockRejectedValue(new Error("ENOENT"));
 
@@ -513,10 +513,10 @@ describe("setupWorkspaceHooks", () => {
       sessionId: "sess-1",
     });
 
-    expect(mockMkdir).toHaveBeenCalledWith("/mock/home/.ao/bin", { recursive: true });
+    expect(mockMkdir).toHaveBeenCalledWith("/mock/home/.qagent/bin", { recursive: true });
   });
 
-  it("writes ao-metadata-helper.sh with executable permissions via atomic write", async () => {
+  it("writes qagent-metadata-helper.sh with executable permissions via atomic write", async () => {
     mockReadFile.mockRejectedValue(new Error("ENOENT"));
 
     await agent.setupWorkspaceHooks!("/workspace/test", {
@@ -527,15 +527,15 @@ describe("setupWorkspaceHooks", () => {
     // Atomic write: writes to .tmp file first, then renames
     const helperWriteCall = mockWriteFile.mock.calls.find(
       (call: [string, string, object]) =>
-        typeof call[0] === "string" && call[0].includes("ao-metadata-helper.sh.tmp."),
+        typeof call[0] === "string" && call[0].includes("qagent-metadata-helper.sh.tmp."),
     );
     expect(helperWriteCall).toBeDefined();
-    expect(helperWriteCall![1]).toContain("update_ao_metadata()");
+    expect(helperWriteCall![1]).toContain("update_qagent_metadata()");
     expect(helperWriteCall![2]).toEqual({ encoding: "utf-8", mode: 0o755 });
 
     // Then renamed to final path
     const helperRenameCall = mockRename.mock.calls.find(
-      (call: string[]) => typeof call[1] === "string" && call[1].endsWith("ao-metadata-helper.sh"),
+      (call: string[]) => typeof call[1] === "string" && call[1].endsWith("qagent-metadata-helper.sh"),
     );
     expect(helperRenameCall).toBeDefined();
   });
@@ -554,7 +554,7 @@ describe("setupWorkspaceHooks", () => {
         typeof call[0] === "string" && call[0].includes("/gh.tmp."),
     );
     expect(ghWriteCall).toBeDefined();
-    expect(ghWriteCall![1]).toContain("ao gh wrapper");
+    expect(ghWriteCall![1]).toContain("qagent gh wrapper");
 
     const ghRenameCall = mockRename.mock.calls.find(
       (call: string[]) => typeof call[1] === "string" && call[1].endsWith("/gh"),
@@ -567,7 +567,7 @@ describe("setupWorkspaceHooks", () => {
         typeof call[0] === "string" && call[0].includes("/git.tmp."),
     );
     expect(gitWriteCall).toBeDefined();
-    expect(gitWriteCall![1]).toContain("ao git wrapper");
+    expect(gitWriteCall![1]).toContain("qagent git wrapper");
 
     const gitRenameCall = mockRename.mock.calls.find(
       (call: string[]) => typeof call[1] === "string" && call[1].endsWith("/git"),
@@ -600,7 +600,7 @@ describe("setupWorkspaceHooks", () => {
     // First call for version marker — matches current version
     // Second call for AGENTS.md — file doesn't exist
     mockReadFile.mockImplementation((path: string) => {
-      if (typeof path === "string" && path.endsWith(".ao-version")) {
+      if (typeof path === "string" && path.endsWith(".qagent-version")) {
         return Promise.resolve("0.1.0");
       }
       // AGENTS.md read attempt
@@ -615,7 +615,7 @@ describe("setupWorkspaceHooks", () => {
     // Should still write the metadata helper (always written)
     const helperWriteCall = mockWriteFile.mock.calls.find(
       (call: [string, string, object]) =>
-        typeof call[0] === "string" && call[0].includes("ao-metadata-helper.sh.tmp."),
+        typeof call[0] === "string" && call[0].includes("qagent-metadata-helper.sh.tmp."),
     );
     expect(helperWriteCall).toBeDefined();
 
@@ -638,13 +638,13 @@ describe("setupWorkspaceHooks", () => {
     // Version marker is also atomically written
     const versionWriteCall = mockWriteFile.mock.calls.find(
       (call: [string, string, object]) =>
-        typeof call[0] === "string" && call[0].includes(".ao-version.tmp."),
+        typeof call[0] === "string" && call[0].includes(".qagent-version.tmp."),
     );
     expect(versionWriteCall).toBeDefined();
     expect(versionWriteCall![1]).toBe("0.1.0");
 
     const versionRenameCall = mockRename.mock.calls.find(
-      (call: string[]) => typeof call[1] === "string" && call[1].endsWith(".ao-version"),
+      (call: string[]) => typeof call[1] === "string" && call[1].endsWith(".qagent-version"),
     );
     expect(versionRenameCall).toBeDefined();
   });
@@ -653,7 +653,7 @@ describe("setupWorkspaceHooks", () => {
     // Version marker matches (skip wrapper install)
     // AGENTS.md exists without ao section
     mockReadFile.mockImplementation((path: string) => {
-      if (typeof path === "string" && path.endsWith(".ao-version")) {
+      if (typeof path === "string" && path.endsWith(".qagent-version")) {
         return Promise.resolve("0.1.0");
       }
       if (typeof path === "string" && path.endsWith("AGENTS.md")) {
@@ -671,14 +671,14 @@ describe("setupWorkspaceHooks", () => {
       (call: string[]) => typeof call[0] === "string" && call[0].endsWith("AGENTS.md"),
     );
     expect(agentsMdCall).toBeDefined();
-    expect(agentsMdCall![1]).toContain("Agent Orchestrator (ao) Session");
+    expect(agentsMdCall![1]).toContain("Agent Orchestrator (qagent) Session");
     expect(agentsMdCall![1]).toContain("# Existing Content");
   });
 
   it("creates AGENTS.md if it does not exist", async () => {
     // Version marker matches, AGENTS.md doesn't exist
     mockReadFile.mockImplementation((path: string) => {
-      if (typeof path === "string" && path.endsWith(".ao-version")) {
+      if (typeof path === "string" && path.endsWith(".qagent-version")) {
         return Promise.resolve("0.1.0");
       }
       return Promise.reject(new Error("ENOENT"));
@@ -693,7 +693,7 @@ describe("setupWorkspaceHooks", () => {
       (call: string[]) => typeof call[0] === "string" && call[0].endsWith("AGENTS.md"),
     );
     expect(agentsMdCall).toBeDefined();
-    expect(agentsMdCall![1]).toContain("Agent Orchestrator (ao) Session");
+    expect(agentsMdCall![1]).toContain("Agent Orchestrator (qagent) Session");
   });
 
   it("uses atomic write (temp + rename) to prevent partial reads from concurrent sessions", async () => {
@@ -725,11 +725,11 @@ describe("setupWorkspaceHooks", () => {
 
   it("does not duplicate ao section in AGENTS.md if already present", async () => {
     mockReadFile.mockImplementation((path: string) => {
-      if (typeof path === "string" && path.endsWith(".ao-version")) {
+      if (typeof path === "string" && path.endsWith(".qagent-version")) {
         return Promise.resolve("0.1.0");
       }
       if (typeof path === "string" && path.endsWith("AGENTS.md")) {
-        return Promise.resolve("# Existing\n\n## Agent Orchestrator (ao) Session\n\nAlready here.\n");
+        return Promise.resolve("# Existing\n\n## Agent Orchestrator (qagent) Session\n\nAlready here.\n");
       }
       return Promise.reject(new Error("ENOENT"));
     });
@@ -795,49 +795,48 @@ describe("shell wrapper content", () => {
   }
 
   describe("metadata helper", () => {
-    it("contains update_ao_metadata function", async () => {
-      const content = await getWrapperContent("ao-metadata-helper.sh");
-      expect(content).toContain("update_ao_metadata()");
+    it("contains update_qagent_metadata function", async () => {
+      const content = await getWrapperContent("qagent-metadata-helper.sh");
+      expect(content).toContain("update_qagent_metadata()");
     });
 
-    it("uses AO_DATA_DIR and AO_SESSION env vars", async () => {
-      const content = await getWrapperContent("ao-metadata-helper.sh");
-      expect(content).toContain("AO_DATA_DIR");
-      expect(content).toContain("AO_SESSION");
+    it("uses QAGENT_DATA_DIR and QAGENT_SESSION env vars", async () => {
+      const content = await getWrapperContent("qagent-metadata-helper.sh");
+      expect(content).toContain("QAGENT_DATA_DIR");
+      expect(content).toContain("QAGENT_SESSION");
     });
 
     it("escapes sed metacharacters in values", async () => {
-      const content = await getWrapperContent("ao-metadata-helper.sh");
+      const content = await getWrapperContent("qagent-metadata-helper.sh");
       // Should contain the sed escaping logic for &, |, and \
       expect(content).toContain("escaped_value");
       expect(content).toMatch(/sed.*\\\\&/);
     });
 
     it("uses atomic temp file + mv pattern", async () => {
-      const content = await getWrapperContent("ao-metadata-helper.sh");
+      const content = await getWrapperContent("qagent-metadata-helper.sh");
       expect(content).toContain("temp_file");
       expect(content).toContain("mv");
     });
 
     it("validates session name has no path separators", async () => {
-      const content = await getWrapperContent("ao-metadata-helper.sh");
+      const content = await getWrapperContent("qagent-metadata-helper.sh");
       // Rejects session names containing / or ..
       expect(content).toContain("*/*");
       expect(content).toContain("*..*");
     });
 
-    it("validates ao_dir is an absolute path under expected locations", async () => {
-      const content = await getWrapperContent("ao-metadata-helper.sh");
-      // Only allows paths under $HOME/.ao/, $HOME/.agent-orchestrator/, or /tmp/
-      expect(content).toContain('$HOME"/.ao/*');
-      expect(content).toContain('$HOME"/.agent-orchestrator/*');
+    it("validates qagent_dir is an absolute path under expected locations", async () => {
+      const content = await getWrapperContent("qagent-metadata-helper.sh");
+      // Only allows paths under $HOME/.qagent/ or /tmp/
+      expect(content).toContain('$HOME"/.qagent/*');
       expect(content).toContain("/tmp/*");
     });
 
-    it("resolves symlinks and verifies file stays within ao_dir", async () => {
-      const content = await getWrapperContent("ao-metadata-helper.sh");
+    it("resolves symlinks and verifies file stays within qagent_dir", async () => {
+      const content = await getWrapperContent("qagent-metadata-helper.sh");
       expect(content).toContain("pwd -P");
-      expect(content).toContain("real_ao_dir");
+      expect(content).toContain("real_qagent_dir");
       expect(content).toContain("real_dir");
     });
   });
@@ -862,12 +861,12 @@ describe("shell wrapper content", () => {
     it("extracts PR URL from gh pr create output", async () => {
       const content = await getWrapperContent("gh");
       expect(content).toContain("https://github");
-      expect(content).toContain("update_ao_metadata pr");
+      expect(content).toContain("update_qagent_metadata pr");
     });
 
     it("updates status to merged on gh pr merge", async () => {
       const content = await getWrapperContent("gh");
-      expect(content).toContain("update_ao_metadata status merged");
+      expect(content).toContain("update_qagent_metadata status merged");
     });
 
     it("cleans up temp file on exit", async () => {
@@ -887,7 +886,7 @@ describe("shell wrapper content", () => {
     it("captures branch name from checkout -b", async () => {
       const content = await getWrapperContent("git");
       expect(content).toContain("checkout/-b");
-      expect(content).toContain("update_ao_metadata branch");
+      expect(content).toContain("update_qagent_metadata branch");
     });
 
     it("captures branch name from switch -c", async () => {
@@ -903,7 +902,7 @@ describe("shell wrapper content", () => {
     it("sources the metadata helper", async () => {
       const content = await getWrapperContent("git");
       expect(content).toContain("source");
-      expect(content).toContain("ao-metadata-helper.sh");
+      expect(content).toContain("qagent-metadata-helper.sh");
     });
   });
 });

@@ -104,7 +104,7 @@ describe.skipIf(!tmuxOk)("CLI-Core integration (hash-based architecture)", () =>
     const hash = generateConfigHash(configPath);
     const sessionsDir = getSessionsDir(configPath, repoPath);
 
-    expect(sessionsDir).toMatch(new RegExp(`\\.agent-orchestrator/${hash}-test-repo/sessions$`));
+    expect(sessionsDir).toMatch(new RegExp(`\\.qagent/${hash}-test-repo/sessions$`));
   });
 
   it("session metadata includes tmuxName field", () => {

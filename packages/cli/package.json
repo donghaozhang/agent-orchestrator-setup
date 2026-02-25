@@ -1,11 +1,11 @@
 {
   "name": "@composio/ao-cli",
   "version": "0.1.0",
-  "description": "CLI for agent-orchestrator — the `ao` command",
+  "description": "CLI for agent-orchestrator — the `qagent` command",
   "license": "MIT",
   "type": "module",
   "bin": {
-    "ao": "dist/index.js"
+    "qagent": "dist/index.js"
   },
   "main": "dist/index.js",
   "files": [

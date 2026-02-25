@@ -369,6 +369,7 @@ export function SessionDetail({ session, isOrchestrator = false, orchestratorZon
           </div>
           <DirectTerminal
             sessionId={session.id}
+            tmuxName={session.metadata?.tmuxName}
             startFullscreen={startFullscreen}
             variant={terminalVariant}
             height={terminalHeight}

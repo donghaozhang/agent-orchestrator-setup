@@ -703,7 +703,7 @@ export function createLifecycleManager(deps: LifecycleManagerDeps): LifecycleMan
               + "7. Re-check CI after the push.\n\n"
               + "## Rules\n\n"
               + "- Only fix what's needed to pass CI — no unrelated changes.\n"
-              + "- Run `pnpm lint && pnpm typecheck` locally before pushing.\n",
+              + "- Run `bun run lint && bun run typecheck` locally before pushing.\n",
           );
         }
         return;

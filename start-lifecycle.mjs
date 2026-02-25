@@ -1,6 +1,6 @@
 import { loadConfig, createSessionManager, createPluginRegistry, createLifecycleManager } from "./packages/core/dist/index.js";
 
-// Import plugins directly since pnpm workspace links aren't at the root
+// Import plugins directly since workspace links aren't at the root
 import runtimeTmux from "./packages/plugins/runtime-tmux/dist/index.js";
 import agentCodex from "./packages/plugins/agent-codex/dist/index.js";
 import agentClaudeCode from "./packages/plugins/agent-claude-code/dist/index.js";

@@ -5,7 +5,7 @@
 ### Prerequisites
 
 - Node.js 20+
-- pnpm 9.15+
+- Bun 1.0+
 - Git 2.30+
 
 ### First-Time Setup
@@ -16,16 +16,16 @@ git clone https://github.com/ComposioHQ/agent-orchestrator.git
 cd agent-orchestrator
 
 # Install dependencies
-pnpm install
+bun install
 
 # Build all packages (required before running dev server)
-pnpm build
+bun run build
 
 # Copy example config
-cp agent-orchestrator.yaml.example agent-orchestrator.yaml
+cp qagent.yaml.example qagent.yaml
 
 # Configure your settings
-$EDITOR agent-orchestrator.yaml
+$EDITOR qagent.yaml
 ```
 
 ### Running the Dev Server
@@ -34,11 +34,11 @@ $EDITOR agent-orchestrator.yaml
 
 ```bash
 # Build all packages
-pnpm build
+bun run build
 
 # Start dev server
 cd packages/web
-pnpm dev
+bun run dev
 
 # Open http://localhost:3000 (or your configured port)
 ```
@@ -49,7 +49,7 @@ pnpm dev
 agent-orchestrator/
 ├── packages/
 │   ├── core/              # Core types, services, config
-│   ├── cli/               # CLI tool (ao command)
+│   ├── cli/               # CLI tool (qagent command)
 │   ├── web/               # Next.js dashboard
 │   ├── plugins/           # All plugins
 │   │   ├── runtime-*/     # Runtime plugins (tmux, docker, k8s)
@@ -60,7 +60,7 @@ agent-orchestrator/
 │   │   ├── notifier-*/    # Notification channels
 │   │   └── terminal-*/    # Terminal UIs
 │   └── integration-tests/ # Integration tests
-├── agent-orchestrator.yaml.example
+├── qagent.yaml.example
 ├── .gitleaks.toml         # Secret scanning config
 ├── .husky/                # Git hooks
 └── docs/                  # Documentation
@@ -84,10 +84,10 @@ agent-orchestrator/
 3. **Build and test**
 
    ```bash
-   pnpm build
-   pnpm test
-   pnpm lint
-   pnpm typecheck
+   bun run build
+   bun run test
+   bun run lint
+   bun run typecheck
    ```
 
 4. **Commit**
@@ -154,16 +154,16 @@ See [CLAUDE.md](../CLAUDE.md) for full conventions.
 
 ```bash
 # Run all tests
-pnpm test
+bun run test
 
 # Run tests for specific package
-pnpm --filter @composio/ao-core test
+bun run --filter @composio/ao-core test
 
 # Run tests in watch mode
-pnpm --filter @composio/ao-core test -- --watch
+bun run --filter @composio/ao-core test -- --watch
 
 # Run integration tests
-pnpm test:integration
+bun run test:integration
 ```
 
 ### Working with Worktrees
@@ -172,19 +172,19 @@ If using git worktrees (common for parallel agent work):
 
 ```bash
 # Create worktree
-git worktree add ../ao-feature-x feat/feature-x
-cd ../ao-feature-x
+git worktree add ../qagent-feature-x feat/feature-x
+cd ../qagent-feature-x
 
 # Install and build
-pnpm install
-pnpm build
+bun install
+bun run build
 
 # Copy config
-cp ../agent-orchestrator/agent-orchestrator.yaml .
+cp ../agent-orchestrator/qagent.yaml .
 
 # Start dev server
 cd packages/web
-pnpm dev
+bun run dev
 ```
 
 ## Security During Development
@@ -281,8 +281,8 @@ gitleaks detect
 
 6. **Build and test**
    ```bash
-   pnpm --filter @composio/ao-runtime-myplugin build
-   pnpm --filter @composio/ao-runtime-myplugin test
+   bun run --filter @composio/ao-runtime-myplugin build
+   bun run --filter @composio/ao-runtime-myplugin test
    ```
 
 ### Updating Interfaces
@@ -292,15 +292,15 @@ If you change an interface in `packages/core/src/types.ts`:
 1. Update the interface
 2. Update all implementations (plugins)
 3. Update tests
-4. Rebuild all packages: `pnpm build`
-5. Run all tests: `pnpm test`
+4. Rebuild all packages: `bun run build`
+5. Run all tests: `bun run test`
 
 ### Debugging
 
 **Enable verbose logging:**
 
 ```bash
-DEBUG=* pnpm dev
+DEBUG=* bun run dev
 ```
 
 **Attach to tmux session:**
@@ -313,7 +313,7 @@ tmux attach -t session-name
 **Inspect session metadata:**
 
 ```bash
-cat ~/.agent-orchestrator/my-app-3
+cat ~/.qagent/my-app-3
 ```
 
 **Check session status:**
@@ -367,17 +367,17 @@ echo 'LINEAR_API_KEY=lin_api_...' >> .env.local
 
 ```bash
 # Clean and rebuild
-pnpm clean
-pnpm install
-pnpm build
+bun run clean
+bun install
+bun run build
 ```
 
 ### Web Dashboard 404s
 
-The web app expects `agent-orchestrator.yaml` in working directory:
+The web app expects `qagent.yaml` in working directory:
 
 ```bash
-cp agent-orchestrator.yaml.example agent-orchestrator.yaml
+cp qagent.yaml.example qagent.yaml
 ```
 
 ### Permission Errors in Tests
@@ -411,4 +411,4 @@ import { foo } from "./bar";
 - [CLAUDE.md](../CLAUDE.md) — Code conventions and architecture
 - [SECURITY.md](../SECURITY.md) — Security best practices
 - [packages/core/README.md](../packages/core/README.md) — Core architecture
-- [agent-orchestrator.yaml.example](../agent-orchestrator.yaml.example) — Config reference
+- [qagent.yaml.example](../qagent.yaml.example) — Config reference

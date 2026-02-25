@@ -5,7 +5,7 @@
   "license": "MIT",
   "type": "module",
   "bin": {
-    "ao": "bin/ao.js"
+    "qagent": "bin/qagent.js"
   },
   "files": [
     "bin"

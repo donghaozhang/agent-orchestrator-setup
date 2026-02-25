@@ -39,7 +39,7 @@ const METADATA_UPDATER_SCRIPT = `#!/usr/bin/env bash
 set -euo pipefail
 
 # Configuration
-AO_DATA_DIR="\${AO_DATA_DIR:-$HOME/.ao-sessions}"
+QAGENT_DATA_DIR="\${QAGENT_DATA_DIR:-$HOME/.qagent-sessions}"
 
 # Read hook input from stdin
 input=$(cat)
@@ -70,15 +70,15 @@ if [[ "$tool_name" != "Bash" ]]; then
   exit 0
 fi
 
-# Validate AO_SESSION is set
-if [[ -z "\${AO_SESSION:-}" ]]; then
-  echo '{"systemMessage": "AO_SESSION environment variable not set, skipping metadata update"}'
+# Validate QAGENT_SESSION is set
+if [[ -z "\${QAGENT_SESSION:-}" ]]; then
+  echo '{"systemMessage": "QAGENT_SESSION environment variable not set, skipping metadata update"}'
   exit 0
 fi
 
 # Construct metadata file path
-# AO_DATA_DIR is already set to the project-specific sessions directory
-metadata_file="$AO_DATA_DIR/$AO_SESSION"
+# QAGENT_DATA_DIR is already set to the project-specific sessions directory
+metadata_file="$QAGENT_DATA_DIR/$QAGENT_SESSION"
 
 # Ensure metadata file exists
 if [[ ! -f "$metadata_file" ]]; then
@@ -619,16 +619,16 @@ function createClaudeCodeAgent(): Agent {
       env["CLAUDECODE"] = "";
 
       // Set session info for introspection
-      env["AO_SESSION_ID"] = config.sessionId;
+      env["QAGENT_SESSION_ID"] = config.sessionId;
 
-      // NOTE: AO_PROJECT_ID is NOT set here - it's the caller's responsibility
+      // NOTE: QAGENT_PROJECT_ID is NOT set here - it's the caller's responsibility
       // to set it based on their metadata path scheme:
       // - spawn.ts sets it to projectId for project-specific directories
       // - start.ts omits it for orchestrator (flat directories)
       // - session manager omits it (flat directories)
 
       if (config.issueId) {
-        env["AO_ISSUE_ID"] = config.issueId;
+        env["QAGENT_ISSUE_ID"] = config.issueId;
       }
 
       return env;

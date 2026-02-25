@@ -74,7 +74,7 @@ async function startDashboard(
 ): Promise<ChildProcess> {
   const env = await buildDashboardEnv(port, configPath, terminalPort, directTerminalPort);
 
-  const child = spawn("pnpm", ["run", "dev"], {
+  const child = spawn("bun", ["run", "dev"], {
     cwd: webDir,
     stdio: "inherit",
     detached: false,
@@ -148,7 +148,7 @@ export function registerStart(program: Command): void {
           if (opts?.dashboard !== false) {
             const webDir = findWebDir();
             if (!existsSync(resolve(webDir, "package.json"))) {
-              throw new Error("Could not find @composio/ao-web package. Run: pnpm install");
+              throw new Error("Could not find @composio/ao-web package. Run: bun install");
             }
 
             if (opts?.rebuild) {

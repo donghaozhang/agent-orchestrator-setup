@@ -1,6 +1,6 @@
 node_modules/
 dist/
-.pnpm-store/
+.bun/
 .next/
 *.tsbuildinfo
 coverage/

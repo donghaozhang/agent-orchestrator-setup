@@ -1,5 +1,5 @@
 /**
- * Configuration loader — reads agent-orchestrator.yaml and validates with Zod.
+ * Configuration loader — reads qagent.yaml and validates with Zod.
  *
  * Minimal config that just works:
  *   projects:
@@ -281,15 +281,15 @@ function applyDefaultReactions(config: OrchestratorConfig): OrchestratorConfig {
  * Search for config file in standard locations.
  *
  * Search order:
- * 1. AO_CONFIG_PATH environment variable (if set)
+ * 1. QAGENT_CONFIG_PATH environment variable (if set)
  * 2. Search up directory tree from CWD (like git)
  * 3. Explicit startDir (if provided)
  * 4. Home directory locations
  */
 export function findConfigFile(startDir?: string): string | null {
   // 1. Check environment variable override
-  if (process.env["AO_CONFIG_PATH"]) {
-    const envPath = resolve(process.env["AO_CONFIG_PATH"]);
+  if (process.env["QAGENT_CONFIG_PATH"]) {
+    const envPath = resolve(process.env["QAGENT_CONFIG_PATH"]);
     if (existsSync(envPath)) {
       return envPath;
     }
@@ -297,7 +297,7 @@ export function findConfigFile(startDir?: string): string | null {
 
   // 2. Search up directory tree from CWD (like git)
   const searchUpTree = (dir: string): string | null => {
-    const configFiles = ["agent-orchestrator.yaml", "agent-orchestrator.yml"];
+    const configFiles = ["qagent.yaml", "qagent.yml"];
 
     for (const filename of configFiles) {
       const configPath = resolve(dir, filename);
@@ -323,7 +323,7 @@ export function findConfigFile(startDir?: string): string | null {
 
   // 3. Check explicit startDir if provided
   if (startDir) {
-    const files = ["agent-orchestrator.yaml", "agent-orchestrator.yml"];
+    const files = ["qagent.yaml", "qagent.yml"];
     for (const filename of files) {
       const path = resolve(startDir, filename);
       if (existsSync(path)) {
@@ -334,9 +334,9 @@ export function findConfigFile(startDir?: string): string | null {
 
   // 4. Check home directory locations
   const homePaths = [
-    resolve(homedir(), ".agent-orchestrator.yaml"),
-    resolve(homedir(), ".agent-orchestrator.yml"),
-    resolve(homedir(), ".config", "agent-orchestrator", "config.yaml"),
+    resolve(homedir(), ".qagent.yaml"),
+    resolve(homedir(), ".qagent.yml"),
+    resolve(homedir(), ".config", "qagent", "config.yaml"),
   ];
 
   for (const path of homePaths) {
@@ -359,12 +359,12 @@ export function findConfig(startDir?: string): string | null {
 
 /** Load and validate config from a YAML file */
 export function loadConfig(configPath?: string): OrchestratorConfig {
-  // Priority: 1. Explicit param, 2. Search (including AO_CONFIG_PATH env var)
-  // findConfigFile handles AO_CONFIG_PATH validation, so delegate to it
+  // Priority: 1. Explicit param, 2. Search (including QAGENT_CONFIG_PATH env var)
+  // findConfigFile handles QAGENT_CONFIG_PATH validation, so delegate to it
   const path = configPath ?? findConfigFile();
 
   if (!path) {
-    throw new Error("No agent-orchestrator.yaml found. Run `ao init` to create one.");
+    throw new Error("No qagent.yaml found. Run `qagent init` to create one.");
   }
 
   const raw = readFileSync(path, "utf-8");
@@ -385,7 +385,7 @@ export function loadConfigWithPath(configPath?: string): {
   const path = configPath ?? findConfigFile();
 
   if (!path) {
-    throw new Error("No agent-orchestrator.yaml found. Run `ao init` to create one.");
+    throw new Error("No qagent.yaml found. Run `qagent init` to create one.");
   }
 
   const raw = readFileSync(path, "utf-8");
@@ -413,7 +413,7 @@ export function validateConfig(raw: unknown): OrchestratorConfig {
   return config;
 }
 
-/** Get the default config (useful for `ao init`) */
+/** Get the default config (useful for `qagent init`) */
 export function getDefaultConfig(): OrchestratorConfig {
   return validateConfig({
     projects: {},

@@ -83,7 +83,7 @@ describe("create()", () => {
     expect(workspace.name).toBe("clone");
   });
 
-  it("uses ~/.ao-clones as default base dir", async () => {
+  it("uses ~/.qagent-clones as default base dir", async () => {
     const workspace = create();
 
     // Setup: remote URL lookup
@@ -102,7 +102,7 @@ describe("create()", () => {
       project: makeProject(),
     });
 
-    expect(info.path).toBe("/mock-home/.ao-clones/myproject/session-1");
+    expect(info.path).toBe("/mock-home/.qagent-clones/myproject/session-1");
   });
 
   it("uses custom cloneDir when configured", async () => {
@@ -201,7 +201,7 @@ describe("workspace.create()", () => {
       "--branch",
       "develop",
       "https://github.com/test/repo.git",
-      "/mock-home/.ao-clones/proj/sess",
+      "/mock-home/.qagent-clones/proj/sess",
     ]);
   });
 
@@ -226,7 +226,7 @@ describe("workspace.create()", () => {
       3,
       "git",
       ["checkout", "-b", "feat/new-branch"],
-      { cwd: "/mock-home/.ao-clones/proj/sess" },
+      { cwd: "/mock-home/.qagent-clones/proj/sess" },
     );
   });
 
@@ -250,7 +250,7 @@ describe("workspace.create()", () => {
 
     // Fourth call: plain checkout
     expect(mockExecFileAsync).toHaveBeenNthCalledWith(4, "git", ["checkout", "feat/existing"], {
-      cwd: "/mock-home/.ao-clones/proj/sess",
+      cwd: "/mock-home/.qagent-clones/proj/sess",
     });
 
     expect(info.branch).toBe("feat/existing");
@@ -278,7 +278,7 @@ describe("workspace.create()", () => {
     ).rejects.toThrow('Failed to clone repo for session "sess"');
 
     // rmSync should be called to clean up
-    expect(fs.rmSync).toHaveBeenCalledWith("/mock-home/.ao-clones/proj/sess", {
+    expect(fs.rmSync).toHaveBeenCalledWith("/mock-home/.qagent-clones/proj/sess", {
       recursive: true,
       force: true,
     });
@@ -306,7 +306,7 @@ describe("workspace.create()", () => {
     ).rejects.toThrow('Failed to checkout branch "bad-branch" in clone');
 
     // rmSync should be called to clean up the orphaned clone
-    expect(fs.rmSync).toHaveBeenCalledWith("/mock-home/.ao-clones/proj/sess", {
+    expect(fs.rmSync).toHaveBeenCalledWith("/mock-home/.qagent-clones/proj/sess", {
       recursive: true,
       force: true,
     });
@@ -327,7 +327,7 @@ describe("workspace.create()", () => {
         project: makeProject(),
       }),
     ).rejects.toThrow(
-      'Workspace path "/mock-home/.ao-clones/proj/sess" already exists for session "sess"',
+      'Workspace path "/mock-home/.qagent-clones/proj/sess" already exists for session "sess"',
     );
   });
 
@@ -399,7 +399,7 @@ describe("workspace.create()", () => {
     });
 
     expect(info).toEqual({
-      path: "/mock-home/.ao-clones/my-project/session-42",
+      path: "/mock-home/.qagent-clones/my-project/session-42",
       branch: "feat/awesome",
       sessionId: "session-42",
       projectId: "my-project",
@@ -421,7 +421,7 @@ describe("workspace.create()", () => {
       project: makeProject(),
     });
 
-    expect(fs.mkdirSync).toHaveBeenCalledWith("/mock-home/.ao-clones/proj", { recursive: true });
+    expect(fs.mkdirSync).toHaveBeenCalledWith("/mock-home/.qagent-clones/proj", { recursive: true });
   });
 
   it("expands ~ in project path", async () => {
@@ -454,9 +454,9 @@ describe("workspace.destroy()", () => {
     const workspace = create();
     (fs.existsSync as ReturnType<typeof vi.fn>).mockReturnValue(true);
 
-    await workspace.destroy("/mock-home/.ao-clones/proj/sess");
+    await workspace.destroy("/mock-home/.qagent-clones/proj/sess");
 
-    expect(fs.rmSync).toHaveBeenCalledWith("/mock-home/.ao-clones/proj/sess", {
+    expect(fs.rmSync).toHaveBeenCalledWith("/mock-home/.qagent-clones/proj/sess", {
       recursive: true,
       force: true,
     });
@@ -467,7 +467,7 @@ describe("workspace.destroy()", () => {
     (fs.existsSync as ReturnType<typeof vi.fn>).mockReturnValue(false);
 
     await expect(
-      workspace.destroy("/mock-home/.ao-clones/proj/nonexistent"),
+      workspace.destroy("/mock-home/.qagent-clones/proj/nonexistent"),
     ).resolves.toBeUndefined();
 
     expect(fs.rmSync).not.toHaveBeenCalled();
@@ -504,13 +504,13 @@ describe("workspace.list()", () => {
 
     expect(result).toEqual([
       {
-        path: "/mock-home/.ao-clones/myproject/session-1",
+        path: "/mock-home/.qagent-clones/myproject/session-1",
         branch: "feat/feature-a",
         sessionId: "session-1",
         projectId: "myproject",
       },
       {
-        path: "/mock-home/.ao-clones/myproject/session-2",
+        path: "/mock-home/.qagent-clones/myproject/session-2",
         branch: "feat/feature-b",
         sessionId: "session-2",
         projectId: "myproject",
@@ -519,10 +519,10 @@ describe("workspace.list()", () => {
 
     // Verify git branch --show-current was called for each entry
     expect(mockExecFileAsync).toHaveBeenNthCalledWith(1, "git", ["branch", "--show-current"], {
-      cwd: "/mock-home/.ao-clones/myproject/session-1",
+      cwd: "/mock-home/.qagent-clones/myproject/session-1",
     });
     expect(mockExecFileAsync).toHaveBeenNthCalledWith(2, "git", ["branch", "--show-current"], {
-      cwd: "/mock-home/.ao-clones/myproject/session-2",
+      cwd: "/mock-home/.qagent-clones/myproject/session-2",
     });
   });
 
@@ -595,7 +595,7 @@ describe("workspace.postCreate()", () => {
     const workspace = create();
 
     const info = {
-      path: "/mock-home/.ao-clones/proj/sess",
+      path: "/mock-home/.qagent-clones/proj/sess",
       branch: "feat/branch",
       sessionId: "sess",
       projectId: "proj",
@@ -614,11 +614,11 @@ describe("workspace.postCreate()", () => {
     expect(mockExecFileAsync).toHaveBeenCalledTimes(2);
 
     expect(mockExecFileAsync).toHaveBeenNthCalledWith(1, "sh", ["-c", "pnpm install"], {
-      cwd: "/mock-home/.ao-clones/proj/sess",
+      cwd: "/mock-home/.qagent-clones/proj/sess",
     });
 
     expect(mockExecFileAsync).toHaveBeenNthCalledWith(2, "sh", ["-c", "pnpm build"], {
-      cwd: "/mock-home/.ao-clones/proj/sess",
+      cwd: "/mock-home/.qagent-clones/proj/sess",
     });
   });
 
@@ -626,7 +626,7 @@ describe("workspace.postCreate()", () => {
     const workspace = create();
 
     const info = {
-      path: "/mock-home/.ao-clones/proj/sess",
+      path: "/mock-home/.qagent-clones/proj/sess",
       branch: "feat/branch",
       sessionId: "sess",
       projectId: "proj",
@@ -643,7 +643,7 @@ describe("workspace.postCreate()", () => {
     const workspace = create();
 
     const info = {
-      path: "/mock-home/.ao-clones/proj/sess",
+      path: "/mock-home/.qagent-clones/proj/sess",
       branch: "feat/branch",
       sessionId: "sess",
       projectId: "proj",

@@ -62,7 +62,7 @@ describe("config → metadata service integration (real filesystem)", () => {
   });
 
   afterAll(async () => {
-    // Clean up hash-based directories in ~/.agent-orchestrator
+    // Clean up hash-based directories in ~/.qagent
     try {
       const projectBaseDir = getProjectBaseDir(configPath, repoPath);
       if (existsSync(projectBaseDir)) {
@@ -87,7 +87,7 @@ describe("config → metadata service integration (real filesystem)", () => {
   it("getSessionsDir returns hash-based path including project name", () => {
     const sessionsDir = getSessionsDir(configPath, repoPath);
 
-    expect(sessionsDir).toContain(".agent-orchestrator");
+    expect(sessionsDir).toContain(".qagent");
     expect(sessionsDir).toContain("my-repo");
     expect(sessionsDir).toContain("sessions");
 

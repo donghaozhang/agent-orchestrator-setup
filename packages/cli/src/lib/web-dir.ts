@@ -54,7 +54,7 @@ async function findAvailablePortPair(base: number): Promise<[number, number]> {
 
 /**
  * Build environment variables for spawning the dashboard process.
- * Shared between `ao start` and `ao dashboard` to avoid duplication.
+ * Shared between `qagent start` and `qagent dashboard` to avoid duplication.
  *
  * Terminal server ports default to 14800/14801 but can be overridden via config.
  * When no explicit port is set, auto-detects available ports to allow multiple
@@ -70,7 +70,7 @@ export async function buildDashboardEnv(
 
   // Pass config path so dashboard uses the same config as the CLI
   if (configPath) {
-    env["AO_CONFIG_PATH"] = configPath;
+    env["QAGENT_CONFIG_PATH"] = configPath;
   }
 
   env["PORT"] = String(port);

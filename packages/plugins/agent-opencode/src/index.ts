@@ -50,10 +50,10 @@ function createOpenCodeAgent(): Agent {
 
     getEnvironment(config: AgentLaunchConfig): Record<string, string> {
       const env: Record<string, string> = {};
-      env["AO_SESSION_ID"] = config.sessionId;
-      // NOTE: AO_PROJECT_ID is the caller's responsibility (spawn.ts sets it)
+      env["QAGENT_SESSION_ID"] = config.sessionId;
+      // NOTE: QAGENT_PROJECT_ID is the caller's responsibility (spawn.ts sets it)
       if (config.issueId) {
-        env["AO_ISSUE_ID"] = config.issueId;
+        env["QAGENT_ISSUE_ID"] = config.issueId;
       }
       return env;
     },

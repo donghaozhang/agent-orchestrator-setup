@@ -3,7 +3,7 @@
  *
  * Architecture:
  * - Config location determines hash: sha256(dirname(configPath)).slice(0, 12)
- * - Each project gets directory: ~/.agent-orchestrator/{hash}-{projectId}/
+ * - Each project gets directory: ~/.qagent/{hash}-{projectId}/
  * - Sessions inside: sessions/{sessionName} (no hash prefix, already namespaced)
  * - Tmux names include hash for global uniqueness: {hash}-{prefix}-{num}
  */
@@ -79,16 +79,16 @@ export function generateSessionPrefix(projectId: string): string {
 
 /**
  * Get the project base directory for a given config and project.
- * Format: ~/.agent-orchestrator/{hash}-{projectId}
+ * Format: ~/.qagent/{hash}-{projectId}
  */
 export function getProjectBaseDir(configPath: string, projectPath: string): string {
   const instanceId = generateInstanceId(configPath, projectPath);
-  return join(expandHome("~/.agent-orchestrator"), instanceId);
+  return join(expandHome("~/.qagent"), instanceId);
 }
 
 /**
  * Get the sessions directory for a project.
- * Format: ~/.agent-orchestrator/{hash}-{projectId}/sessions
+ * Format: ~/.qagent/{hash}-{projectId}/sessions
  */
 export function getSessionsDir(configPath: string, projectPath: string): string {
   return join(getProjectBaseDir(configPath, projectPath), "sessions");
@@ -96,7 +96,7 @@ export function getSessionsDir(configPath: string, projectPath: string): string 
 
 /**
  * Get the worktrees directory for a project.
- * Format: ~/.agent-orchestrator/{hash}-{projectId}/worktrees
+ * Format: ~/.qagent/{hash}-{projectId}/worktrees
  */
 export function getWorktreesDir(configPath: string, projectPath: string): string {
   return join(getProjectBaseDir(configPath, projectPath), "worktrees");
@@ -104,7 +104,7 @@ export function getWorktreesDir(configPath: string, projectPath: string): string
 
 /**
  * Get the archive directory for a project.
- * Format: ~/.agent-orchestrator/{hash}-{projectId}/archive
+ * Format: ~/.qagent/{hash}-{projectId}/archive
  */
 export function getArchiveDir(configPath: string, projectPath: string): string {
   return join(getSessionsDir(configPath, projectPath), "archive");

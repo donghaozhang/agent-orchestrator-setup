@@ -3,7 +3,7 @@
 ## Core Principles
 
 1. **Convention over configuration** - Auto-derive everything possible
-2. **Single source of truth** - Config file in repo, runtime data in `~/.agent-orchestrator/`
+2. **Single source of truth** - Config file in repo, runtime data in `~/.qagent/`
 3. **Zero path configuration** - All paths determined automatically
 4. **Global uniqueness** - Hash-based namespacing prevents collisions
 
@@ -14,12 +14,12 @@
 ```
 Repo (versioned):
 ~/any/path/to/agent-orchestrator/
-  agent-orchestrator.yaml              ← Config file (only this matters)
+  qagent.yaml                          ← Config file (only this matters)
   packages/
   ...
 
 Runtime Data (not versioned):
-~/.agent-orchestrator/                 ← Single parent directory
+~/.qagent/                             ← Single parent directory
   a3b4c5d6e7f8-integrator/             ← {hash}-{projectId}
     sessions/
       int-1                            ← Session metadata files (no hash prefix)
@@ -51,7 +51,7 @@ const projectId = path.basename(projectPath); // integrator, backend, etc.
 const instanceId = `${hash}-${projectId}`; // a3b4c5d6e7f8-integrator
 
 // Not configurable!
-const projectBaseDir = `~/.agent-orchestrator/${instanceId}`;
+const projectBaseDir = `~/.qagent/${instanceId}`;
 const sessionsDir = `${projectBaseDir}/sessions`;
 const worktreesDir = `${projectBaseDir}/worktrees`;
 ```
@@ -63,7 +63,7 @@ const worktreesDir = `${projectBaseDir}/worktrees`;
 ## 2. Config File (Minimal)
 
 ```yaml
-# agent-orchestrator.yaml
+# qagent.yaml
 
 projects:
   - path: ~/repos/integrator # Required: where is the repo?
@@ -141,7 +141,7 @@ function generateSessionPrefix(projectId: string): string {
 ### File Structure (One Directory Per Project)
 
 ```
-~/.agent-orchestrator/a3b4c5d6e7f8-integrator/
+~/.qagent/a3b4c5d6e7f8-integrator/
   sessions/
     int-1      ← Metadata file (user-facing session name)
     int-2
@@ -179,22 +179,22 @@ pr=https://github.com/ComposioHQ/integrator/pull/123
 
 ```bash
 # List all sessions
-ao list
+qagent list
 
 # List sessions for specific project
-ao list integrator
+qagent list integrator
 
 # Spawn new session
-ao spawn integrator INT-100
+qagent spawn integrator INT-100
 
 # Attach to session (orchestrator finds tmux name)
-ao attach int-1
+qagent attach int-1
 
 # Kill session
-ao kill int-1
+qagent kill int-1
 
 # Show instance info
-ao info
+qagent info
 ```
 
 **No config paths in commands! Everything auto-discovered.**
@@ -206,7 +206,7 @@ ao info
 ### Same Config → Same Hash
 
 ```yaml
-# ~/code/my-orchestrator/agent-orchestrator.yaml
+# ~/code/my-orchestrator/qagent.yaml
 projects:
   - path: ~/repos/integrator
   - path: ~/repos/backend
@@ -215,7 +215,7 @@ projects:
 Results in:
 
 ```
-~/.agent-orchestrator/
+~/.qagent/
   a3b4c5d6e7f8-integrator/        ← Same hash (same config)
   a3b4c5d6e7f8-backend/           ← Same hash (same config)
 ```
@@ -231,7 +231,7 @@ Results in:
 Results in:
 
 ```
-~/.agent-orchestrator/
+~/.qagent/
   a3b4c5d6e7f8-integrator/        ← From ~/code/orchestrator
   f1e2d3c4b5a6-integrator/        ← From ~/code/orchestrator-v2 (different checkout!)
   9876abcd5432-safesplit/         ← From ~/splitly-orchestrator
@@ -249,7 +249,7 @@ f1e2d3c4b5a6-int-1    (v2 checkout)
 ## 7. Complete Example
 
 ```yaml
-# ~/code/my-orchestrator/agent-orchestrator.yaml
+# ~/code/my-orchestrator/qagent.yaml
 projects:
   - path: ~/repos/integrator
     repo: ComposioHQ/integrator
@@ -269,7 +269,7 @@ Config location:
   → Hash: a3b4c5d6e7f8
 
 Runtime data:
-  ~/.agent-orchestrator/
+  ~/.qagent/
     a3b4c5d6e7f8-integrator/      ← Project 1
       sessions/
         int-1
@@ -287,8 +287,8 @@ Session names:
   Tmux: a3b4c5d6e7f8-int-1, a3b4c5d6e7f8-be-1
 
 Commands:
-  ao spawn integrator INT-100
-  ao attach int-1
+  qagent spawn integrator INT-100
+  qagent attach int-1
 ```
 
 ---
